@@ -75,7 +75,7 @@ jobs:
       - name: Increment Assembly Version
         run: |
             $VersionRegex = "\d+\.\d+\.\d+"
-            $assemlyFilePath = (Get-ChildItem -Include AssemblyInfo.cs -File -Recurse).fullname
+            $assemlyFilePath = (Get-ChildItem -Include AssemblyInfo.cs -File -Recurse -Path .\src\SectigoCAProxy\ ).fullname
             $filecontent = Get-Content($assemlyFilePath)
             $newVer = "${{ steps.create_release.outputs.current_tag }}".TrimStart('v')
             attrib $assemlyFilePath -r
@@ -103,7 +103,7 @@ jobs:
           asset_name: ${{ env.REPO_NAME}}_${{ steps.create_release.outputs.current_tag }}.zip
           asset_content_type: application/zip                 
       
-      - name: On Failure: Remove Tags and Release
+      - name: On Failure Remove Tags and Release
         if: ${{ failure() }}
         uses: dev-drprasad/delete-tag-and-release@v0.2.0
         with:
