@@ -1,0 +1,32 @@
+﻿{
+  "commonName": "ccmqa.com",
+  "issuer": "issuer",
+  "sslId": 135,
+  "orgId": 3024,
+  "status": "Issued",
+  "orderNumber": 7344326,
+  "backendCertId": "7344326",
+  "vendor": "Vendor",
+  "serverSoftware": "OTHER",
+  "certType": {
+    "id": 2837,
+    "name": "SSL SASP -1561902796",
+    "terms": [ 365 ]
+  },
+  "term": 365,
+  "owner": "client-admin-15297 client-admin-15297",
+  "requester": "15295_nobody@nobody.comodo.od.ua",
+  "comments": "comments",
+  "requested": "12/21/2020",
+  "approved": "",
+  "serialNumber": "00:0::11::2:2::33",
+  "keyAlgorithm": "RSA",
+  "keySize": 0,
+  "subjectAlternativeNames": [ "ccmqa.com" ],
+  "customFields": [
+    {
+      "name": "name1",
+      "value": "value1"
+    }
+  ]
+}

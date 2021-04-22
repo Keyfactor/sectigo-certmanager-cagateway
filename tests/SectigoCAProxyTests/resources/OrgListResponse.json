@@ -1,0 +1,19 @@
+﻿[
+  {
+    "id": 11258,
+    "name": "org4Test",
+    "certTypes": ["SSL"],
+    "departments": [
+      {
+        "id": 11259,
+        "name": "department4Test",
+        "certTypes": [ "SSL" ]
+      },
+      {
+        "id": 11260,
+        "name": "department4Test",
+        "certTypes": [ "SSL" ]
+      }
+    ]
+  }
+]
