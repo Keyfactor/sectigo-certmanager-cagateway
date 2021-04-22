@@ -83,7 +83,7 @@ jobs:
       
       - name: Execute MSBuild Commands
         run: |
-          MSBuild.exe $Env:SOLUTION_PATH -p:RestorePackagesConfig=false -p:Configuration=Release       
+          MSBuild.exe $Env:SOLUTION_PATH -p:RestorePackagesConfig=true -p:Configuration=Release       
       
       - name: Archive Files
         if: ${{ success() }}
