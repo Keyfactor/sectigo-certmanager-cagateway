@@ -77,7 +77,7 @@
     <None Include="resources\OrgListResponse.json" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\SectigoCAProxy\SectigoCAProxy.csproj">
+    <ProjectReference Include="..\..\src\SectigoCAProxy\SectigoCAProxy.csproj">
       <Project>{ea70088a-23b7-4753-b764-8ddec8571522}</Project>
       <Name>SectigoCAProxy</Name>
     </ProjectReference>
