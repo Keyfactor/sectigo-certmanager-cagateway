@@ -1,7 +1,7 @@
-# Sectigo Certificate Manager AnyGateway
-## Ca-gateway
+# {{ name }}
+## {{ integration_type | capitalize }}
 
-This integration allows for the Synchronization, Enrollment, and Revocation of TLS Certificates from a Sectigo Certificate Manager instance.
+{{ description }}
 
 # Prerequisites
 
