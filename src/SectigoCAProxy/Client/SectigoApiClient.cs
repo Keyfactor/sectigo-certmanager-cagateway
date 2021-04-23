@@ -6,16 +6,13 @@
 // and limitations under the License.
 using CSS.Common.Logging;
 using Keyfactor.AnyGateway.Sectigo.API;
-
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -172,9 +169,9 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
             {
                 throw new Exception($"HttpRequestException. {httpEx.Message}|{httpEx.StackTrace}");
             }
-            catch (SectigoApiException ex)
+            catch (SectigoApiException)
             {
-                throw ex;
+                throw;
             }
         }
         public async Task<int> Renew(int sslId)
@@ -194,9 +191,9 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
             {
                 throw new Exception($"HttpRequestException. {httpEx.Message}|{httpEx.StackTrace}");
             }
-            catch (SectigoApiException ex)
+            catch (SectigoApiException)
             {
-                throw ex;
+                throw;
             }
 
         }
@@ -234,7 +231,7 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
             else
             {
                 var error = JsonConvert.DeserializeObject<Error>(await response.Content.ReadAsStringAsync());
-                throw new SectigoApiException($"{error.Code}|{error.Description}") { ErrorCode = error.Code, Description = error.Description};
+                throw new SectigoApiException($"{error.Code} | {error.Description}") { ErrorCode = error.Code, Description = error.Description};
             }
         }
 

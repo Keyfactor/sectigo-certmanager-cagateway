@@ -16,6 +16,10 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
         {
 
         }
+        public SectigoApiException(string message, Exception ex):base(message,ex)
+        {
+
+        }
 
 
     }
