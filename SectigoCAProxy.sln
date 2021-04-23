@@ -11,11 +11,14 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SectigoSandbox", "src\Secti
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{D77A55A9-5874-4E6D-AD20-202D457891C7}"
 	ProjectSection(SolutionItems) = preProject
-		..\.gitignore = ..\.gitignore
 		CHANGELOG.md = CHANGELOG.md
+		.github\workflows\copy-manifest.yml = .github\workflows\copy-manifest.yml
+		.github\workflows\generate-readme.yml = .github\workflows\generate-readme.yml
+		integration-manifest.json = integration-manifest.json
 		.github\workflows\keyfactor-extension-release.yml = .github\workflows\keyfactor-extension-release.yml
-		..\LICENSE = ..\LICENSE
-		..\README.md = ..\README.md
+		LICENSE = LICENSE
+		README.md = README.md
+		README.md.tpl = README.md.tpl
 	EndProjectSection
 EndProject
 Global
