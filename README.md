@@ -1,5 +1,8 @@
-# Introduction
-Secitgo Certificate Manager (formerly COMODO) is a certificate management platform that allows for the issuance or private and public certificates. 
+# Sectigo Certificate Manager AnyGateway
+## Ca-gateway
+
+This integration allows for the Synchronization, Enrollment, and Revocation of TLS Certificates from a Sectigo Certificate Manager instance.
+
 # Prerequisites
 
 ## Certificate Chain
