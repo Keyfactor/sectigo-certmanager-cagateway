@@ -228,12 +228,14 @@ namespace Keyfactor.AnyGateway.Sectigo
             Logger.Info($"Begin {enrollmentType} enrollment for {subject}");
             try
             {
-                bool multiDomain = bool.Parse(productInfo.ProductParameters["MultiDomain"]);
                 Logger.Debug("Parse Subject for Common Name, Organization, and Org Unit");
+
                 string commonName = ParseSubject(subject, "CN=");
                 Logger.Trace($"Common Name: {commonName}");
+
                 string orgStr = ParseSubject(subject, "O=");
                 Logger.Trace($"Organization: {orgStr}");
+
                 string ouStr = ParseSubject(subject, "OU=");
                 Logger.Trace($"Org Unit: {ouStr}");
 
@@ -256,33 +258,38 @@ namespace Keyfactor.AnyGateway.Sectigo
                 var org = Task.Run(async () => await GetOrganizationAsync(orgStr)).Result;
                 if (org == null)
                 {
-                    throw new Exception($"Unable to find Organization by Name {orgStr} ");
+                    string err = $"Unable to find Organization by Name {orgStr} ";
+                    Logger.Error($"{err}");
+                    return new EnrollmentResult { Status = 30, StatusMessage = err };
                 }
-
-                Logger.Trace($"Found {org.id} for {orgStr}");
-
+             
                 Department ou = null;
                 if (org.certTypes.Count == 0)
                 {
-                    Logger.Trace($"{orgStr} doses not contain a valid certificate type configuration. Check org unit");
+                    Logger.Trace($"{orgStr} does not contain a valid certificate type configuration. Verify Org Unit");
                     ou = org.departments.Where(x => x.name.ToLower().Equals(ouStr.ToLower())).FirstOrDefault();
 
                     if (ou == null)
                     {
-                        throw new Exception($"{ouStr} does not exist in the Sectigo Configuration. Please verify configuration");
+                        string err = $"{ouStr} does not exist as a department of {orgStr}. Please verify configuration";
+                        Logger.Error($"{err}");
+                        return new EnrollmentResult { Status = 30, StatusMessage = err };
                     }
 
+                    Logger.Trace($"{ou} is valid. Apply {ou.id} to request");
                     requstOrgId = ou.id;
                 }
                 else
                 {
+                    Logger.Trace($"{orgStr} contain a valid certificate type configuration. Apply {org.id} to request");
                     requstOrgId = org.id;
                 }
 
 
                 //Check if SAN matches the SUBJECT CN when multidomain = false (single domain cert). 
                 //If true, we need to send empty san array. if different, join array (remove if one?)
-                string sanList = ParseSanList(san, multiDomain, commonName);
+                bool isMultiDomain = bool.Parse(productInfo.ProductParameters["MultiDomain"]);
+                string sanList = ParseSanList(san, isMultiDomain, commonName);
                 
                 var enrollmentProfile = Task.Run(async () => await GetProfile(int.Parse(productInfo.ProductID))).Result;
                 if (enrollmentProfile != null)
@@ -293,6 +300,7 @@ namespace Keyfactor.AnyGateway.Sectigo
 
                 int sslId;
                 string priorSn = string.Empty;
+                Certificate newCert = null;
 
                 switch (enrollmentType)
                 {
@@ -317,13 +325,15 @@ namespace Keyfactor.AnyGateway.Sectigo
 
                         Logger.Debug($"Submit {enrollmentType} request for {subject}");
                         sslId = Task.Run(async () => await Client.Enroll(request)).Result;
+                        newCert = Task.Run(async () => await Client.GetCertificate(sslId)).Result;
+                        Logger.Debug($"Enrolled for Certificate {newCert.CommonName} (ID: {newCert.Id}) | Status: {newCert.status}. Attempt to Pickup Certificate.");
                         break;
 
                     default:
-                        return new EnrollmentResult { Status = 30, StatusMessage = $"Unsupported enrollment type {RequestUtilities.EnrollmentType.Reissue}" };
+                        return new EnrollmentResult { Status = 30, StatusMessage = $"Unsupported enrollment type {enrollmentType}" };
                 }
 
-                return PickUpEnrolledCertificate(sslId, subject);
+                return PickUpEnrolledCertificate(newCert);
             }
             catch (HttpRequestException httpEx)
             {
@@ -359,7 +369,7 @@ namespace Keyfactor.AnyGateway.Sectigo
         {
             Logger.MethodEntry(ILogExtensions.MethodLogLevel.Debug);
             int retryCounter = 0;
-            Thread.Sleep(2 * 1000);//small static delay as an attempt to avoid retries all together
+            Thread.Sleep(5 * 1000);//small static delay as an attempt to avoid retries all together
             while (retryCounter < Config.PickupRetries)
             {
                 Logger.Info($"Try number {retryCounter + 1} to pickup single certificate");
@@ -377,11 +387,27 @@ namespace Keyfactor.AnyGateway.Sectigo
             Logger.MethodExit(ILogExtensions.MethodLogLevel.Debug);
             return null;
         }
+
+        public EnrollmentResult PickUpEnrolledCertificate(Certificate sslCert)
+        {
+            if (sslCert.status.Equals("Issued", StringComparison.InvariantCultureIgnoreCase))
+            {
+               return PickUpEnrolledCertificate(sslCert.Id, sslCert.CommonName);
+            }
+
+            Logger.Debug($"Certificate {sslCert.CommonName} (ID: {sslCert.Id}) has not been issued. Certificate will be picked up during synchronization after approval.");
+            return new EnrollmentResult
+            {
+                Status = 13,
+                StatusMessage = "Certificate requires approval. Certificate will be picked up during synchronization after approval."
+            };
+        }
+
         public EnrollmentResult PickUpEnrolledCertificate(int sslId, string subject)
         {
             Logger.MethodEntry(ILogExtensions.MethodLogLevel.Debug);
             int retryCounter = 0;
-            Thread.Sleep(2 * 1000);//small static delay as an attempt to avoid retries all together
+            Thread.Sleep(5 * 1000);//small static delay as an attempt to avoid retries all together
             while (retryCounter < Config.PickupRetries)
             {
                 Logger.Info($"Try number {retryCounter + 1} to pickup enrolled certificate");

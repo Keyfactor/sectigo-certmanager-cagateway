@@ -62,8 +62,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          release_name: Release ${{ env.RELEASE_NAME  }}
+          release_name: Release 1.0.1
           body: |
+            Enhance the handling of exceptions during enrollment.  Organization and Org Unit checks will now return a failed enrollment result vs. thowing an exception. 
             [Changelog](CHANGELOG.MD)
           draft: false
           prerelease: false
