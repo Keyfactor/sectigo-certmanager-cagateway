@@ -162,3 +162,4 @@ There are no specific Changes for the GatewayRegistration section. Refer to the 
 	"PartialScanPeriodMinutes": 480 /*Note partial sync based on a timestamp is not supported by the Sectigo API. As a result all syncs with the API are treated as full syncronization jobs*/
   }
 ```
+

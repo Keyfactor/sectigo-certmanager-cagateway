@@ -1,0 +1,7 @@
+{
+  "$schema": "https://keyfactor.github.io/integration-manifest-schema.json",
+  "integration_type": "ca-gateway",
+  "name": "Sectigo Certificate Manager AnyGateway",
+  "status": "production",
+  "description": "This integration allows for the Synchronization, Enrollment, and Revocation of TLS Certificates from a Sectigo Certificate Manager instance."
+}

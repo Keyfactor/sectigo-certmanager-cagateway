@@ -1,0 +1,32 @@
+name: Copy manifest file to integrations-catalog
+on: [push, workflow_dispatch]
+
+jobs:
+  run:
+    name: Copy the manifest
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          path: './integration/'
+          
+      # If you need to, you can check out your repo to a different location
+      - uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.SDK_SYNC_PAT }}
+          path: './catalog-temp/'
+          repository: 'Keyfactor/integrations-catalog'
+
+      # You can make whatever type of change to the repo...
+      - run: cp './integration/integration-manifest.json' ${{ format('./catalog-temp/_integrations/{0}.json', github.event.repository.name) }}
+
+      # ...and then use the action as you would normally do, but providing the path to the repo
+      - uses: EndBug/add-and-commit@v7
+        with:
+          author_name: 'Keyfactor'
+          author_email: 'keyfactor@keyfactor.github.io'
+          branch: 'main'
+          message: ${{ format('Added the manifest for {0}', github.event.repository.name) }}
+          add: ${{ format('_integrations/{0}.json --force', github.event.repository.name) }}
+          cwd: './catalog-temp/'
