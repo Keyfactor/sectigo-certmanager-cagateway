@@ -73,7 +73,7 @@ jobs:
           commitish: ${{ github.sha }}          
       
       #update version number of AssemblyInfo.cs file
-      - name: Increment Assembly Version
+      - name: Increment Assembly Version - CA Proxy
         run: |
             $VersionRegex = "\d+\.\d+\.\d+"
             $assemlyFilePath = (Get-ChildItem -Include AssemblyInfo.cs -File -Recurse -Path .\src\SectigoCAProxy\ ).fullname
@@ -82,6 +82,15 @@ jobs:
             attrib $assemlyFilePath -r
             $filecontent -replace $VersionRegex, $newVer | Out-File $assemlyFilePath
       
+      - name: Increment Assembly Version - Esent Migrator
+        run: |
+            $VersionRegex = "\d+\.\d+\.\d+"
+            $assemlyFilePath = (Get-ChildItem -Include AssemblyInfo.cs -File -Recurse -Path .\src\SectigoEsentMigrator\ ).fullname
+            $filecontent = Get-Content($assemlyFilePath)
+            $newVer = "${{ steps.create_release.outputs.current_tag }}".TrimStart('v')
+            attrib $assemlyFilePath -r
+            $filecontent -replace $VersionRegex, $newVer | Out-File $assemlyFilePath
+
       - name: Execute MSBuild Commands
         run: |
           MSBuild.exe $Env:SOLUTION_PATH -p:RestorePackagesConfig=true -p:Configuration=Release       
@@ -90,7 +99,7 @@ jobs:
         if: ${{ success() }}
         run: |
            md ${{ github.workspace }}\zip\Keyfactor
-           Compress-Archive -Path ${{ github.workspace }}\src\SectigoCAProxy\bin\Release\SectigoCAProxy.dll -DestinationPath ${{ github.workspace }}\zip\Keyfactor\$Env:REPO_NAME.zip -Force      
+           Compress-Archive -Path ${{ github.workspace }}\src\SectigoCAProxy\bin\Release\SectigoCAProxy.dll, ${{ github.workspace }}\src\SectigoEsentMigrator\bin\Release\SectigoEsentMigrator.dll -DestinationPath ${{ github.workspace }}\zip\Keyfactor\$Env:REPO_NAME.zip -Force      
       
       - name: Upload Release Asset (x64)
         if: ${{ success() }}
