@@ -1,5 +1,8 @@
-# Introduction
-Secitgo Certificate Manager (formerly COMODO) is a certificate management platform that allows for the issuance or private and public certificates. 
+# Sectigo Certificate Manager AnyGateway
+## Ca-gateway
+
+This integration allows for the Synchronization, Enrollment, and Revocation of TLS Certificates from a Sectigo Certificate Manager instance.
+
 # Prerequisites
 
 ## Certificate Chain
@@ -114,9 +117,9 @@ This setting determine the number of times the service will attempt to download 
 This is the number of seconds between retries.  Be aware that the total # of retries times the number of seconds will be an amount of time the portal will be occupied during enrollment. If the duration is too long the request may timeout and cause unexpected results. 
 * ```PageSize```
 This is the number of certificates per request that will be processed during sync. 
-* ```ExternalRequestorFieldName```
+*```ExternalRequestorFieldName```
 This is the Enrollment Field name that can be populated to pass an email address to Sectigo for enrollment notifications.  If blank, the API will default to the email address of the API user configured in the username field above. 
-* ```SyncFilter```
+*```SyncFilter```
 This object will allow the implementation team to determine how the synchronization process limits certificates.  All SSL List filter parameters should be supported.  The example below shows filtering based on specific templates that should only be synchronized by a particular CA.[Support Article for API detail](https://support.sectigo.com/Com_KnowledgeDetailPage?Id=kA01N000000XDkE)
 
 ```json
@@ -162,4 +165,3 @@ There are no specific Changes for the GatewayRegistration section. Refer to the 
 	"PartialScanPeriodMinutes": 480 /*Note partial sync based on a timestamp is not supported by the Sectigo API. As a result all syncs with the API are treated as full syncronization jobs*/
   }
 ```
-
