@@ -82,8 +82,9 @@ namespace Keyfactor.AnyGateway.Sectigo
                         throw producerTask.Exception.Flatten();
                     }
 
-                    CAConnectorCertificate dbCert;
-                    dbCert = certificateDataReader.GetCertificateRecord(CSS.Common.DataConversion.HexToBytes(certToAdd.SerialNumber));
+                    CAConnectorCertificate dbCert=null;
+                    if(!String.IsNullOrEmpty(certToAdd.SerialNumber))
+                        dbCert = certificateDataReader.GetCertificateRecord(CSS.Common.DataConversion.HexToBytes(certToAdd.SerialNumber));
                     //we found an existing cert from the DB by serial number.  This should already be in the DB so no need to sync again
 
                     //are we syncing a reissued cert? Reissued certs keep the same ID, but may have different data and cause index errors on sync
@@ -100,9 +101,15 @@ namespace Keyfactor.AnyGateway.Sectigo
                     string certData = string.Empty;
                     if (dbCert != null)
                     {
-                        //Found a certificate in the DB by SN. No need to pickup and sync. 
-                        Logger.Info($"Certificate {certToAdd.CommonName} (ID: {certToAdd.Id}) with SN: {certToAdd.SerialNumber} already synced. Skipping.");
-                        continue;
+                        if (dbCert.Status == ConvertToKeyfactorStatus(certToAdd.status))
+                        {
+                            Logger.Info($"Certificate {certToAdd.CommonName} (ID: {certToAdd.Id}) with SN: {certToAdd.SerialNumber} already synced. Skipping.");
+                            continue;
+                        }
+
+                        Logger.Info($"Certificate status changed.  Syncing new status");
+                        certData = dbCert.Certificate;
+
                     }
                     else
                     {
@@ -128,7 +135,6 @@ namespace Keyfactor.AnyGateway.Sectigo
                         ResolutionDate = certToAdd.approved,
                         RevocationReason = ConvertToKeyfactorStatus(certToAdd.status) == 21 ? 0 : 0xffffff,
                         RevocationDate = certToAdd.revoked,
-                        CSR=""
                     };
 
                     if (blockingBuffer.TryAdd(caCertToAdd, 50, cancelToken))
@@ -222,12 +228,14 @@ namespace Keyfactor.AnyGateway.Sectigo
             Logger.Info($"Begin {enrollmentType} enrollment for {subject}");
             try
             {
-                bool multiDomain = bool.Parse(productInfo.ProductParameters["MultiDomain"]);
                 Logger.Debug("Parse Subject for Common Name, Organization, and Org Unit");
+
                 string commonName = ParseSubject(subject, "CN=");
                 Logger.Trace($"Common Name: {commonName}");
+
                 string orgStr = ParseSubject(subject, "O=");
                 Logger.Trace($"Organization: {orgStr}");
+
                 string ouStr = ParseSubject(subject, "OU=");
                 Logger.Trace($"Org Unit: {ouStr}");
 
@@ -250,46 +258,55 @@ namespace Keyfactor.AnyGateway.Sectigo
                 var org = Task.Run(async () => await GetOrganizationAsync(orgStr)).Result;
                 if (org == null)
                 {
-                    throw new Exception($"Unable to find Organization by Name {orgStr} ");
+                    string err = $"Unable to find Organization by Name {orgStr} ";
+                    Logger.Error($"{err}");
+                    return new EnrollmentResult { Status = 30, StatusMessage = err };
                 }
-
-                Logger.Trace($"Found {org.id} for {orgStr}");
-
+             
                 Department ou = null;
                 if (org.certTypes.Count == 0)
                 {
-                    Logger.Trace($"{orgStr} doses not contain a valid certificate type configuration. Check org unit");
+                    Logger.Trace($"{orgStr} does not contain a valid certificate type configuration. Verify Org Unit");
                     ou = org.departments.Where(x => x.name.ToLower().Equals(ouStr.ToLower())).FirstOrDefault();
 
                     if (ou == null)
                     {
-                        throw new Exception($"{ouStr} does not exist in the Sectigo Configuration. Please verify configuration");
+                        string err = $"{ouStr} does not exist as a department of {orgStr}. Please verify configuration";
+                        Logger.Error($"{err}");
+                        return new EnrollmentResult { Status = 30, StatusMessage = err };
                     }
 
+                    Logger.Trace($"{ou} is valid. Apply {ou.id} to request");
                     requstOrgId = ou.id;
                 }
                 else
                 {
+                    Logger.Trace($"{orgStr} contain a valid certificate type configuration. Apply {org.id} to request");
                     requstOrgId = org.id;
                 }
 
 
                 //Check if SAN matches the SUBJECT CN when multidomain = false (single domain cert). 
                 //If true, we need to send empty san array. if different, join array (remove if one?)
-                string sanList = ParseSanList(san, multiDomain, commonName);
-
+                bool isMultiDomain = bool.Parse(productInfo.ProductParameters["MultiDomain"]);
+                string sanList = ParseSanList(san, isMultiDomain, commonName);
+                
                 var enrollmentProfile = Task.Run(async () => await GetProfile(int.Parse(productInfo.ProductID))).Result;
-
+                if (enrollmentProfile != null)
+                {
+                    Logger.Trace($"Found {enrollmentProfile.name} profile for enroll request");
+                }
 
 
                 int sslId;
-                int certCounter = 0;
-                CAConnectorCertificate caCert;
                 string priorSn = string.Empty;
+                Certificate newCert = null;
 
                 switch (enrollmentType)
                 {
                     case RequestUtilities.EnrollmentType.New:
+                    case RequestUtilities.EnrollmentType.Reissue:
+                    case RequestUtilities.EnrollmentType.Renew:
 
                         EnrollRequest request = new EnrollRequest
                         {
@@ -306,103 +323,17 @@ namespace Keyfactor.AnyGateway.Sectigo
                             comments = $"CERTIFICATE_REQUESTOR: {productInfo.ProductParameters["Keyfactor-Requester"]}"//this is how the current gateway passes this data
                         };
 
-                        Logger.Debug($"Submit Enrollment Request for {subject}");
+                        Logger.Debug($"Submit {enrollmentType} request for {subject}");
                         sslId = Task.Run(async () => await Client.Enroll(request)).Result;
+                        newCert = Task.Run(async () => await Client.GetCertificate(sslId)).Result;
+                        Logger.Debug($"Enrolled for Certificate {newCert.CommonName} (ID: {newCert.Id}) | Status: {newCert.status}. Attempt to Pickup Certificate.");
                         break;
-
-                    case RequestUtilities.EnrollmentType.Renew:
-                        priorSn = productInfo.ProductParameters["priorcertsn"];
-                        caCert = certificateDataReader.GetCertificateRecord(CSS.Common.DataConversion.HexToBytes(priorSn));
-
-                        sslId = int.Parse(caCert.CARequestID);
-                        if (caCert.CARequestID.Contains('-'))
-                        {
-                            sslId = int.Parse(caCert.CARequestID.Split('-')[0]);
-                        }
-
-                        try
-                        {
-                            Logger.Debug($"Submit renewal Enrollment Request for {subject}");
-                            sslId = Task.Run(async () => await Client.Renew(sslId)).Result;
-                        }
-                        catch (SectigoApiException renewEx)
-                        {
-                            //check for "Certificate Profile was deleted. Operation can not be performed" error
-                            //and see if Default Template has been defined.  Otherwise, throw an error
-                            //TODO: Review Error Codes in API documenation and determine if others should retry with default
-                            //TODO: Condigurable error codes?
-                            if (renewEx.ErrorCode == PROFILE_RENEW_ERROR_CODE)
-                            {
-                                Logger.Trace($"Original Certificate Profile was deleted. Attempt to issue certificate with profile {enrollmentProfile.name} (ID:{enrollmentProfile.id})");
-                                //resubmit as new
-                                EnrollRequest newCertForRenew = new EnrollRequest
-                                {
-                                    csr = csr,
-                                    orgId = requstOrgId,
-                                    term = Task.Run(async () => await GetProfileTerm(int.Parse(productInfo.ProductID))).Result,
-                                    certType = enrollmentProfile.id,
-                                    externalRequester = GetExternalRequestor(productInfo),
-                                    numberServers = 1,
-                                    serverType = -1,
-                                    subjAltNames = sanList,//,
-                                    comments = $"CERTIFICATE_REQUESTOR: {productInfo.ProductParameters["Keyfactor-Requester"]}"//this is how the current gateway passes this data
-                                };
-                                Logger.Trace($"Renew Request:{JsonConvert.SerializeObject(newCertForRenew)}");
-                                sslId = Task.Run(async () => await Client.Enroll(newCertForRenew)).Result;
-                            }
-                            else
-                            {
-                                throw renewEx;
-                            }
-                        }
-                        break;
-
-                    case RequestUtilities.EnrollmentType.Reissue:
-
-                        priorSn = productInfo.ProductParameters["priorcertsn"];
-                        caCert = certificateDataReader.GetCertificateRecord(CSS.Common.DataConversion.HexToBytes(priorSn));
-
-                        if (caCert.CARequestID.Contains('-'))
-                        {
-                            if (!int.TryParse(caCert.CARequestID.Split('-')?[1], out certCounter))
-                            {
-                                Logger.Warn($"No Counter.  Inital Reissue Request for CA Request ID{caCert.CARequestID}");
-                                sslId = int.Parse(caCert.CARequestID);
-                            }
-                            else
-                            {
-                                sslId = int.Parse(caCert.CARequestID.Split('-')[0]);
-                            }
-
-                        }
-                        else
-                        {
-                            sslId = int.Parse(caCert.CARequestID);
-                        }
-
-                        ReissueRequest reissueRequest = new ReissueRequest
-                        {
-                            commonName = commonName,
-                            csr = csr,
-                            reason = "Replaced by Portal",
-                            subjectAlternativeNames = san["dns"]
-                        };
-
-                        Logger.Debug($"Submit Reissue Request for {subject}");
-                        Logger.Trace(JsonConvert.SerializeObject(reissueRequest));
-                        Task.Run(async () => await Client.Reissue(reissueRequest, sslId));
-
-                        var reissueResult = PickUpEnrolledCertificate(sslId, subject);
-
-                        reissueResult.CARequestID = $"{reissueResult.CARequestID}-{++certCounter}";
-
-                        return reissueResult;
 
                     default:
-                        return new EnrollmentResult { Status = 30, StatusMessage = $"Unsupported enrollment type {RequestUtilities.EnrollmentType.Reissue}" };
+                        return new EnrollmentResult { Status = 30, StatusMessage = $"Unsupported enrollment type {enrollmentType}" };
                 }
 
-                return PickUpEnrolledCertificate(sslId, subject);
+                return PickUpEnrolledCertificate(newCert);
             }
             catch (HttpRequestException httpEx)
             {
@@ -438,7 +369,7 @@ namespace Keyfactor.AnyGateway.Sectigo
         {
             Logger.MethodEntry(ILogExtensions.MethodLogLevel.Debug);
             int retryCounter = 0;
-            Thread.Sleep(2 * 1000);//small static delay as an attempt to avoid retries all together
+            Thread.Sleep(5 * 1000);//small static delay as an attempt to avoid retries all together
             while (retryCounter < Config.PickupRetries)
             {
                 Logger.Info($"Try number {retryCounter + 1} to pickup single certificate");
@@ -456,11 +387,27 @@ namespace Keyfactor.AnyGateway.Sectigo
             Logger.MethodExit(ILogExtensions.MethodLogLevel.Debug);
             return null;
         }
+
+        public EnrollmentResult PickUpEnrolledCertificate(Certificate sslCert)
+        {
+            if (sslCert.status.Equals("Issued", StringComparison.InvariantCultureIgnoreCase))
+            {
+               return PickUpEnrolledCertificate(sslCert.Id, sslCert.CommonName);
+            }
+
+            Logger.Debug($"Certificate {sslCert.CommonName} (ID: {sslCert.Id}) has not been issued. Certificate will be picked up during synchronization after approval.");
+            return new EnrollmentResult
+            {
+                Status = 13,
+                StatusMessage = "Certificate requires approval. Certificate will be picked up during synchronization after approval."
+            };
+        }
+
         public EnrollmentResult PickUpEnrolledCertificate(int sslId, string subject)
         {
             Logger.MethodEntry(ILogExtensions.MethodLogLevel.Debug);
             int retryCounter = 0;
-            Thread.Sleep(2 * 1000);//small static delay as an attempt to avoid retries all together
+            Thread.Sleep(5 * 1000);//small static delay as an attempt to avoid retries all together
             while (retryCounter < Config.PickupRetries)
             {
                 Logger.Info($"Try number {retryCounter + 1} to pickup enrolled certificate");
@@ -604,6 +551,7 @@ namespace Keyfactor.AnyGateway.Sectigo
         #region Static Helpers
         private static string ParseSanList(Dictionary<string, string[]> san, bool multiDomain, string commonName)
         {
+            
             string sanList = string.Empty;
             if (san.ContainsKey("dns"))
             {
@@ -649,6 +597,7 @@ namespace Keyfactor.AnyGateway.Sectigo
             }
             else
             {
+                
                 throw new Exception($"The request is missing a {rdn} value");
             }
         }
