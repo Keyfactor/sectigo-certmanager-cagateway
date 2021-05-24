@@ -52,6 +52,7 @@ namespace Keyfactor.AnyGateway.Sectigo.API
     { 
         SSL=0,
         DEVICE=1,
-        SMIME=2
+        SMIME=2,
+        CodeSign=4
     }
 }

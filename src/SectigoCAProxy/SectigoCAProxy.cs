@@ -116,7 +116,8 @@ namespace Keyfactor.AnyGateway.Sectigo
                         //No certificate in the DB by SN.  Need to download to get full certdata required for sync process
                         Logger.Trace($"Attempt to Pickup Certificate {certToAdd.CommonName} (ID: {certToAdd.Id})");
                         var certdataApi = Task.Run(async () => await Client.PickupCertificate(certToAdd.Id, certToAdd.CommonName)).Result;
-                        certData = Convert.ToBase64String(certdataApi.GetRawCertData());
+                        if(certdataApi!=null)
+                            certData = Convert.ToBase64String(certdataApi.GetRawCertData());
                     }
 
                     if (certToAdd == null || String.IsNullOrEmpty(certToAdd.SerialNumber) || String.IsNullOrEmpty(certToAdd.CommonName) || String.IsNullOrEmpty(certData))
@@ -390,7 +391,8 @@ namespace Keyfactor.AnyGateway.Sectigo
 
         public EnrollmentResult PickUpEnrolledCertificate(Certificate sslCert)
         {
-            if (sslCert.status.Equals("Issued", StringComparison.InvariantCultureIgnoreCase))
+            if (sslCert.status.Equals("Issued", StringComparison.InvariantCultureIgnoreCase)|| 
+                sslCert.status.Equals("Applied", StringComparison.InvariantCultureIgnoreCase))
             {
                return PickUpEnrolledCertificate(sslCert.Id, sslCert.CommonName);
             }
@@ -398,7 +400,7 @@ namespace Keyfactor.AnyGateway.Sectigo
             Logger.Debug($"Certificate {sslCert.CommonName} (ID: {sslCert.Id}) has not been issued. Certificate will be picked up during synchronization after approval.");
             return new EnrollmentResult
             {
-                Status = 13,
+                Status = (int)PKIConstants.Microsoft.RequestDisposition.EXTERNAL_VALIDATION,
                 StatusMessage = "Certificate requires approval. Certificate will be picked up during synchronization after approval."
             };
         }
@@ -420,7 +422,7 @@ namespace Keyfactor.AnyGateway.Sectigo
                     {
                         CARequestID = $"{sslId}",
                         Certificate = Convert.ToBase64String(certificate.GetRawCertData()),
-                        Status = 20,
+                        Status = (int)PKIConstants.Microsoft.RequestDisposition.ISSUED,
                         StatusMessage = $"Successfully enrolled for certificate {certificate.Subject}"
                     };
                 }
