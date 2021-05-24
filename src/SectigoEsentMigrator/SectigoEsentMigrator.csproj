@@ -35,14 +35,14 @@
     <Reference Include="BouncyCastle.Crypto, Version=1.8.5.0, Culture=neutral, PublicKeyToken=0e99375e54769942">
       <HintPath>..\..\packages\BouncyCastle.1.8.5\lib\BouncyCastle.Crypto.dll</HintPath>
     </Reference>
-    <Reference Include="CAProxy.AnyGateway.Core, Version=20.9.0.0, Culture=neutral, PublicKeyToken=0ed89d330114ab09, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Keyfactor.AnyGateway.SDK.20.9.0\lib\net462\CAProxy.AnyGateway.Core.dll</HintPath>
+    <Reference Include="CAProxy.AnyGateway.Core, Version=21.3.2.0, Culture=neutral, PublicKeyToken=0ed89d330114ab09, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Keyfactor.AnyGateway.SDK.21.3.2\lib\net462\CAProxy.AnyGateway.Core.dll</HintPath>
     </Reference>
-    <Reference Include="CAProxy.Interfaces, Version=20.9.0.0, Culture=neutral, PublicKeyToken=0ed89d330114ab09, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Keyfactor.AnyGateway.SDK.20.9.0\lib\net462\CAProxy.Interfaces.dll</HintPath>
+    <Reference Include="CAProxy.Interfaces, Version=21.3.2.0, Culture=neutral, PublicKeyToken=0ed89d330114ab09, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Keyfactor.AnyGateway.SDK.21.3.2\lib\net462\CAProxy.Interfaces.dll</HintPath>
     </Reference>
-    <Reference Include="CAProxyDAL">
-      <HintPath>..\SectigoCAProxy\packages\CAProxyDAL.dll</HintPath>
+    <Reference Include="CAProxyDAL, Version=21.3.2.0, Culture=neutral, PublicKeyToken=0ed89d330114ab09, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Keyfactor.AnyGateway.SDK.21.3.2\lib\net462\CAProxyDAL.dll</HintPath>
     </Reference>
     <Reference Include="Common.Logging, Version=3.4.1.0, Culture=neutral, PublicKeyToken=af08829b84f0328e, processorArchitecture=MSIL">
       <HintPath>..\..\packages\Common.Logging.3.4.1\lib\net40\Common.Logging.dll</HintPath>
@@ -50,8 +50,8 @@
     <Reference Include="Common.Logging.Core, Version=3.4.1.0, Culture=neutral, PublicKeyToken=af08829b84f0328e, processorArchitecture=MSIL">
       <HintPath>..\..\packages\Common.Logging.Core.3.4.1\lib\net40\Common.Logging.Core.dll</HintPath>
     </Reference>
-    <Reference Include="CommonCAProxy, Version=20.9.0.0, Culture=neutral, PublicKeyToken=0ed89d330114ab09, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Keyfactor.AnyGateway.SDK.20.9.0\lib\net462\CommonCAProxy.dll</HintPath>
+    <Reference Include="CommonCAProxy, Version=21.3.2.0, Culture=neutral, PublicKeyToken=0ed89d330114ab09, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Keyfactor.AnyGateway.SDK.21.3.2\lib\net462\CommonCAProxy.dll</HintPath>
     </Reference>
     <Reference Include="CSS.Common, Version=1.6.0.0, Culture=neutral, PublicKeyToken=0ed89d330114ab09, processorArchitecture=MSIL">
       <HintPath>..\..\packages\CSS.Common.1.6.0\lib\net462\CSS.Common.dll</HintPath>
