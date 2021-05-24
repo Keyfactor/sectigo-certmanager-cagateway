@@ -117,9 +117,9 @@ This setting determine the number of times the service will attempt to download 
 This is the number of seconds between retries.  Be aware that the total # of retries times the number of seconds will be an amount of time the portal will be occupied during enrollment. If the duration is too long the request may timeout and cause unexpected results. 
 * ```PageSize```
 This is the number of certificates per request that will be processed during sync. 
-*```ExternalRequestorFieldName```
+* ```ExternalRequestorFieldName```
 This is the Enrollment Field name that can be populated to pass an email address to Sectigo for enrollment notifications.  If blank, the API will default to the email address of the API user configured in the username field above. 
-*```SyncFilter```
+* ```SyncFilter```
 This object will allow the implementation team to determine how the synchronization process limits certificates.  All SSL List filter parameters should be supported.  The example below shows filtering based on specific templates that should only be synchronized by a particular CA.[Support Article for API detail](https://support.sectigo.com/Com_KnowledgeDetailPage?Id=kA01N000000XDkE)
 
 ```json
@@ -164,4 +164,19 @@ There are no specific Changes for the GatewayRegistration section. Refer to the 
     "FullScanPeriodHours": 24,
 	"PartialScanPeriodMinutes": 480 /*Note partial sync based on a timestamp is not supported by the Sectigo API. As a result all syncs with the API are treated as full syncronization jobs*/
   }
+```
+# Migration
+In the event that a system is being upgraded from the Legacy Sectigo CA Gateway (19.4 or older), a migration from the legacy database format to the AnyGateway format will be required. 
+
+To begin the migration process, the DatabaseManagementConsole.exe.config will need to be updated to reference the SectigoEsentMigrator.  This is one by modifying the mapping for the IDatabaseMigrator inteface in the config file. 
+```xml
+<register type="IDatabaseMigrator" mapTo="Keyfactor.AnyGateway.Sectigo.Database.SectigoEsentMigrator, SectigoEsentMigrator" />
+```
+
+Addtionally, to address differences in version, the following ```bindingRedirect``` needs to be added as well:
+```xml
+<dependentAssembly>
+<assemblyIdentity name="CAProxy.AnyGateway.Core" publicKeyToken="0ed89d330114ab09" culture="neutral" />
+<bindingRedirect oldVersion="0.0.0.0-21.3.2.0" newVersion="21.3.2.0" />
+</dependentAssembly>	
 ```
