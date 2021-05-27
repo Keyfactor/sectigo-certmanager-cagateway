@@ -36,6 +36,8 @@ namespace Keyfactor.AnyGateway.Sectigo
         public string ExternalRequestorFieldName { get; set; }
         [JsonProperty("SyncFilter")]
         public Dictionary<string, string[]> SyncFilter { get; set; }
+        [JsonProperty("ForceCompleteSync", DefaultValueHandling =DefaultValueHandling.Populate)]
+        public bool ForceCompleteSync { get; set; }
         public string GetSyncFilterQueryString() 
         { 
             string filterQueryString = string.Empty;

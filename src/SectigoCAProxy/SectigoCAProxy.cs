@@ -32,7 +32,6 @@ namespace Keyfactor.AnyGateway.Sectigo
     public class SectigoCAProxy : BaseCAConnector
     {
 
-        const int PROFILE_RENEW_ERROR_CODE = -8408;
         /// <summary>
         /// CAConnection section of the imported AnyGateway configuration 
         /// </summary>
@@ -58,36 +57,38 @@ namespace Keyfactor.AnyGateway.Sectigo
             Logger.MethodEntry(ILogExtensions.MethodLogLevel.Debug);
 
             Task producerTask = null;
-
             CancellationTokenSource newCancelToken = CancellationTokenSource.CreateLinkedTokenSource(cancelToken);
 
             try
             {
                 var certsToAdd = new BlockingCollection<Certificate>(100);
-
+                Logger.Info($"Begin Paging Certificate List");
                 producerTask = Client.CertificateListProducer(certsToAdd, newCancelToken.Token, Config.PageSize, Config.GetSyncFilterQueryString());
 
                 foreach (Certificate certToAdd in certsToAdd.GetConsumingEnumerable())
                 {
                     if (cancelToken.IsCancellationRequested)
                     {
-                        Logger.Warn($"Task was cancelled. Stopping synchronize task.");
+                        Logger.Warn($"Task was canceled. Stopping Synchronize task.");
                         blockingBuffer.CompleteAdding();
                         break;
                     }
 
                     if (producerTask.Exception != null)
                     {
-                        Logger.Error($"Sync task failed with the following message: {producerTask.Exception.Flatten().Message}");
+                        Logger.Error($"Synchronize task failed with the following message: {producerTask.Exception.Flatten().Message}");
                         throw producerTask.Exception.Flatten();
                     }
 
                     CAConnectorCertificate dbCert=null;
+                    //serial number is blank on certs that have not been issed (awaiting approval)
                     if(!String.IsNullOrEmpty(certToAdd.SerialNumber))
                         dbCert = certificateDataReader.GetCertificateRecord(CSS.Common.DataConversion.HexToBytes(certToAdd.SerialNumber));
-                    //we found an existing cert from the DB by serial number.  This should already be in the DB so no need to sync again
+                    
 
-                    //are we syncing a reissued cert? Reissued certs keep the same ID, but may have different data and cause index errors on sync
+                    //are we syncing a reissued cert?
+                    //Reissued certs keep the same ID, but may have different data and cause index errors on sync
+                    //Removed reissued certs from enrollment, but may be some stragglers for legacy installs
                     int syncReqId = 0;
                     if (dbCert != null && dbCert.CARequestID.Contains('-'))
                     {
@@ -101,15 +102,19 @@ namespace Keyfactor.AnyGateway.Sectigo
                     string certData = string.Empty;
                     if (dbCert != null)
                     {
-                        if (dbCert.Status == ConvertToKeyfactorStatus(certToAdd.status))
+                        //we found an existing cert from the DB by serial number.
+                        //This should already be in the DB so no need to sync again unless status changes or
+                        //admin has forced a complete sync
+                        if (dbCert.Status == ConvertToKeyfactorStatus(certToAdd.status) && !Config.ForceCompleteSync)
                         {
-                            Logger.Info($"Certificate {certToAdd.CommonName} (ID: {certToAdd.Id}) with SN: {certToAdd.SerialNumber} already synced. Skipping.");
+                            Logger.Trace($"Certificate {certToAdd.CommonName} (Id: {certToAdd.Id}) already synced. Skipping.");
                             continue;
                         }
+                        var statusMessage = dbCert.Status == ConvertToKeyfactorStatus(certToAdd.status) ? "not changed" : "changed";
+                        var forcedMessage = Config.ForceCompleteSync ? "Complete sync forced by configuration. " : string.Empty;
 
-                        Logger.Info($"Certificate status changed.  Syncing new status");
+                        Logger.Trace($"Certificate {certToAdd.CommonName} status {statusMessage}.{forcedMessage} Syncing certificate.");
                         certData = dbCert.Certificate;
-
                     }
                     else
                     {
@@ -122,7 +127,7 @@ namespace Keyfactor.AnyGateway.Sectigo
 
                     if (certToAdd == null || String.IsNullOrEmpty(certToAdd.SerialNumber) || String.IsNullOrEmpty(certToAdd.CommonName) || String.IsNullOrEmpty(certData))
                     {
-                        Logger.Trace($"Certificate Data unavailable from Sectigo for {certToAdd.CommonName} (ID: {certToAdd.Id}). Skipping ");
+                        Logger.Debug($"Certificate Data unavailable for {certToAdd.CommonName} (ID: {certToAdd.Id}). Skipping ");
                         continue;
                     }
 
@@ -135,24 +140,25 @@ namespace Keyfactor.AnyGateway.Sectigo
                         SubmissionDate = certToAdd.requested,
                         ResolutionDate = certToAdd.approved,
                         RevocationReason = ConvertToKeyfactorStatus(certToAdd.status) == 21 ? 0 : 0xffffff,
-                        RevocationDate = certToAdd.revoked,
+                        RevocationDate = certToAdd.revoked ?? DateTime.UtcNow,
                     };
 
                     if (blockingBuffer.TryAdd(caCertToAdd, 50, cancelToken))
                     {
-                        Logger.Trace($"Added {certToAdd.CommonName} (ID:{(syncReqId == 0 ? certToAdd.Id.ToString() : syncReqId.ToString())}) to queue for synchronization");
+                        Logger.Debug($"Added {certToAdd.CommonName} (ID:{(syncReqId == 0 ? certToAdd.Id.ToString() : syncReqId.ToString())}) to queue for synchronization");
                     }
                     else
                     {
-                        Logger.Trace($"Adding {certToAdd.CommonName} to queue was blocked. Retrying");
+                        Logger.Debug($"Adding {certToAdd.CommonName} to queue was blocked. Retrying");
                     }
                 }
+                Logger.Info($"Adding Certificates to Queue is Complete.");
                 blockingBuffer.CompleteAdding();
             }
             catch (Exception ex)
             {
                 //gracefully exit so any certs added to queue prior to failure will still sync
-                Logger.Error($"Sync failed. {ex.Message}");
+                Logger.Error($"Synchronize Task failed. {ex.Message} | {ex.StackTrace}");
                 if (producerTask != null && !producerTask.IsCompleted)
                 {
                     newCancelToken.Cancel();
@@ -162,7 +168,7 @@ namespace Keyfactor.AnyGateway.Sectigo
             }
             Logger.MethodExit(ILogExtensions.MethodLogLevel.Debug);
         }
-        
+
         /// <summary>
         /// Method to execute a single certificate sync after enrollment or revocation. Used to update status of a single record in Command
         /// </summary>
@@ -172,27 +178,31 @@ namespace Keyfactor.AnyGateway.Sectigo
         {
             Logger.MethodEntry(ILogExtensions.MethodLogLevel.Debug);
 
+            Logger.Trace($"Get Single Certificate Detail from Sectigo (sslId: {caRequestID})");
+            int sslId = int.Parse(caRequestID.Split('-')[0]);
 
-            int reqId;
+            var singleCert = Task.Run(async () => await Client.GetCertificate(sslId)).Result;
+            Logger.Trace($"{singleCert.CommonName} ({singleCert.status}) retrieved from Sectigo."); 
 
-            if (caRequestID.Contains('-'))
+            //Pending external validation, cannot download certificate data from API
+            if (ConvertToKeyfactorStatus(singleCert.status) == 13|| ConvertToKeyfactorStatus(singleCert.status) == 21)
             {
-                reqId = int.Parse(caRequestID.Split('-')[0]);
-            }
-            else
-            {
-                reqId = int.Parse(caRequestID);
+                return new CAConnectorCertificate()
+                {
+                    CARequestID = caRequestID,
+                    ProductID = singleCert.CertType.id.ToString(),
+                    SubmissionDate = singleCert.requested,
+                    ResolutionDate = singleCert.approved,
+                    Status = ConvertToKeyfactorStatus(singleCert.status),
+                    RevocationReason = ConvertToKeyfactorStatus(singleCert.status) == 21 ? 0 : 0xffffff,
+                    RevocationDate = singleCert.revoked ?? DateTime.UtcNow
+                };
+
             }
 
-            Logger.Trace($"Get Single Certificate from Sectigo sslId:{reqId} | Req ID:{caRequestID}");
-            var singleCert = Task.Run(async () => await Client.GetCertificate(reqId)).Result;
-            Logger.Trace($"Found {singleCert.CommonName} from Sectigo. Pick up cert");
-
-            var certData = PickupSingleCert(reqId, singleCert.CommonName);
+            var certData = PickupSingleCert(sslId, singleCert.CommonName);
             if (certData != null)
             {
-                Logger.Trace($"Certificate Data Downloaded: {certData.Subject} ");
-
                 Logger.MethodExit(ILogExtensions.MethodLogLevel.Debug);
                 return new CAConnectorCertificate()
                 {
@@ -203,7 +213,7 @@ namespace Keyfactor.AnyGateway.Sectigo
                     ResolutionDate = singleCert.approved,
                     Status = ConvertToKeyfactorStatus(singleCert.status),
                     RevocationReason = ConvertToKeyfactorStatus(singleCert.status) == 21 ? 0 : 0xffffff,
-                    RevocationDate = singleCert.revoked
+                    RevocationDate = singleCert.revoked ?? DateTime.UtcNow
                 };
 
             }
@@ -373,7 +383,7 @@ namespace Keyfactor.AnyGateway.Sectigo
             Thread.Sleep(5 * 1000);//small static delay as an attempt to avoid retries all together
             while (retryCounter < Config.PickupRetries)
             {
-                Logger.Info($"Try number {retryCounter + 1} to pickup single certificate");
+                Logger.Debug($"Try number {retryCounter + 1} to pickup single certificate");
                 var certificate = Task.Run(async () => await Client.PickupCertificate(sslId, subject)).Result;
                 if (certificate != null && !String.IsNullOrEmpty(certificate.Subject))
                 {
@@ -397,9 +407,10 @@ namespace Keyfactor.AnyGateway.Sectigo
                return PickUpEnrolledCertificate(sslCert.Id, sslCert.CommonName);
             }
 
-            Logger.Debug($"Certificate {sslCert.CommonName} (ID: {sslCert.Id}) has not been issued. Certificate will be picked up during synchronization after approval.");
+            Logger.Info($"Certificate {sslCert.CommonName} (ID: {sslCert.Id}) has not been issued. Certificate will be picked up during synchronization after approval.");
             return new EnrollmentResult
             {
+                CARequestID = $"{sslCert.Id}",
                 Status = (int)PKIConstants.Microsoft.RequestDisposition.EXTERNAL_VALIDATION,
                 StatusMessage = "Certificate requires approval. Certificate will be picked up during synchronization after approval."
             };
@@ -412,7 +423,7 @@ namespace Keyfactor.AnyGateway.Sectigo
             Thread.Sleep(5 * 1000);//small static delay as an attempt to avoid retries all together
             while (retryCounter < Config.PickupRetries)
             {
-                Logger.Info($"Try number {retryCounter + 1} to pickup enrolled certificate");
+                Logger.Debug($"Try number {retryCounter + 1} to pickup enrolled certificate");
                 var certificate = Task.Run(async () => await Client.PickupCertificate(sslId, subject)).Result;
                 if (certificate != null && !String.IsNullOrEmpty(certificate.Subject))
                 {
@@ -433,7 +444,8 @@ namespace Keyfactor.AnyGateway.Sectigo
             Logger.MethodExit(ILogExtensions.MethodLogLevel.Debug);
             return new EnrollmentResult
             {
-                Status = 13,//should this be pending or failed.  I think pending since we should pick up the cert in a later sync
+                CARequestID = $"{sslId}",
+                Status = (int)PKIConstants.Microsoft.RequestDisposition.EXTERNAL_VALIDATION,
                 StatusMessage = "Failed to pickup certificate. Check SCM portal to determine if addtional approval is required"
             };
         }
@@ -553,38 +565,36 @@ namespace Keyfactor.AnyGateway.Sectigo
         #region Static Helpers
         private static string ParseSanList(Dictionary<string, string[]> san, bool multiDomain, string commonName)
         {
-            
             string sanList = string.Empty;
-            if (san.ContainsKey("dns"))
+            List<string> allSans = new List<string>();
+            foreach (var k in san.Keys)
             {
-                string[] requestSanList = san["dns"];
-                if (!multiDomain)
+                allSans.AddRange(san[k].ToList());
+            }
+
+            if (!multiDomain)
+            {
+                if (allSans.Contains(commonName) && allSans.Count() > 1)
                 {
-                    if (requestSanList.Contains(commonName) && requestSanList.Count() > 1)
-                    {
-                        List<string> sans = requestSanList.ToList();
-                        sans.Remove(commonName);
-                        sanList = string.Join(",", sans.ToArray());
-                    }
+                    List<string> sans = allSans.ToList();
+                    sans.Remove(commonName);
+                    sanList = string.Join(",", sans.ToArray());
+                }
+            }
+            else
+            {
+                if (allSans.Contains(commonName))
+                {
+                    List<string> sans = allSans.ToList();
+                    sans.Remove(commonName);
+                    sanList = string.Join(",", sans.ToArray());
                 }
                 else
                 {
-                    if (requestSanList.Contains(commonName))
-                    {
-                        List<string> sans = requestSanList.ToList();
-                        sans.Remove(commonName);
-                        sanList = string.Join(",", sans.ToArray());
-                    }
-                    else
-                    {
-                        List<string> sans = requestSanList.ToList();
-                        sanList = string.Join(",", sans.ToArray());
-                    }
-
+                    List<string> sans = allSans.ToList();
+                    sanList = string.Join(",", sans.ToArray());
                 }
-
             }
-
             return sanList;
         }
 
