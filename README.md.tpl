@@ -3,13 +3,36 @@
 
 {{ description }}
 
-# Prerequisites
+### Supported Functionality
+* SSL Certificate Synchronization
+    * Sync can be filtered by any available SSL Certificate List filter defined by the Cert Manager API
+    * All Sync jobs are treated as a full sync becuase the Cert Manager API does not allow for filtering based on a date/time stamp
+    * Certificates will only syncronize once.  If a certificate is found based on Serial Number for the managed CA it will be skipped for subsequent syncs to minimize impact on Cert Manager API load
 
-## Certificate Chain
+* SSL Certificate Enrollment
+   * Note about organizations.  The organization for enrollment is currently selected dynamically based on Organization and/or Org Unit of the CSR.  If a top level Organization is found and is able to issue certs, that organization ID is passed with the enrollment request.  If the Organization does not have any certificate types assigned, it will look for a department based on the OU name. If no matches are found the enrollment will fail as this is a required field for Sectigo. 
+* SSL Certificate Revocation
+
+### Not Implemented/Supported
+* Device Certificates
+* Client Certificates
+* Code Signing
+
+## Prerequisites
+
+### Certificate Chain
 
 In order to enroll for certificates the Keyfactor Command server must trust the trust chain. Once you create your Root and/or Subordinate CA, make sure to import the certificate chain into the Command Server certificate store
 
-# Install
+### Migration
+In the event that a system is being upgraded from the Legacy Sectigo CA Gateway (19.4 or older), a migration from the legacy database format to the AnyGateway format will be required. 
+
+To begin the migration process, the DatabaseManagementConsole.exe.config will need to be updated to reference the SectigoEsentMigrator.  This is one by modifying the mapping for the IDatabaseMigrator inteface in the config file. 
+```xml
+<register type="IDatabaseMigrator" mapTo="Keyfactor.AnyGateway.Sectigo.Database.SectigoEsentMigrator, SectigoEsentMigrator" />
+```
+
+## Install
 * Download latest successful build from GitHub :<br/>
 [GitHub Releases](https://github.com/Keyfactor/sectigo-certmanager-cagateway/releases)
 
@@ -21,10 +44,10 @@ In order to enroll for certificates the Keyfactor Command server must trust the 
   <alias alias="CAConnector" type="Keyfactor.AnyGateway.Sectigo.SectigoCAProxy, SectigoCAProxy"/>
   ```
 
-# Configuration
+## Configuration
 The following sections will breakdown the required configurations for the AnyGatewayConfig.json file that will be imported to configure the AnyGateway.
 
-## Templates
+### Templates
 The Template section will map the CA's SSL profile to an AD template. Currently the only required parameter is the MultiDomain flag. This flag lets Keyfactor know if the certificate can contain multiple domain names.  Depending on the setting, the SAN entries of the request will change to support Sectigo Requirements. 
  ```json
   "Templates": {
@@ -36,7 +59,7 @@ The Template section will map the CA's SSL profile to an AD template. Currently 
    }
 }
  ```
-## Security
+### Security
 The security section does not change specifically for Sectigo Cert Manager.  Refer to the AnyGateway Documentation for more detail.
 ```json
   /*Grant permissions on the CA to users or groups in the local domain.
@@ -72,7 +95,7 @@ The security section does not change specifically for Sectigo Cert Manager.  Ref
         }
     }
 ```
-## CerificateManagers
+### CerificateManagers
 The Certificate Managers section is optional.
 	If configured, all users or groups granted OFFICER permissions under the Security section
 	must be configured for at least one Template and one Requester. 
@@ -97,7 +120,7 @@ The Certificate Managers section is optional.
 		}
 	}
 ```
-## CAConnection
+### CAConnection
 The CA Connection section will determine the API endpoint and configuration data used to connect to Sectigo Cert Manager. 
 * ```ApiEndpoint```
 This is the endpoint used by the Gateway to connect to the API. There are a few possible values depending on the Customer's configuration.  
@@ -143,7 +166,7 @@ This object will allow the implementation team to determine how the synchronizat
 	}
   }
 ```
-## GatewayRegistration
+### GatewayRegistration
 There are no specific Changes for the GatewayRegistration section. Refer to the Refer to the AnyGateway Documentation for more detail.
 ```json
   "GatewayRegistration": {
@@ -156,7 +179,7 @@ There are no specific Changes for the GatewayRegistration section. Refer to the 
   }
 ```
 
-## ServiceSettings
+### ServiceSettings
 There are no specific Changes for the GatewayRegistration section. Refer to the Refer to the AnyGateway Documentation for more detail.
 ```json
   "ServiceSettings": {
@@ -164,19 +187,4 @@ There are no specific Changes for the GatewayRegistration section. Refer to the 
     "FullScanPeriodHours": 24,
 	"PartialScanPeriodMinutes": 480 /*Note partial sync based on a timestamp is not supported by the Sectigo API. As a result all syncs with the API are treated as full syncronization jobs*/
   }
-```
-# Migration
-In the event that a system is being upgraded from the Legacy Sectigo CA Gateway (19.4 or older), a migration from the legacy database format to the AnyGateway format will be required. 
-
-To begin the migration process, the DatabaseManagementConsole.exe.config will need to be updated to reference the SectigoEsentMigrator.  This is one by modifying the mapping for the IDatabaseMigrator inteface in the config file. 
-```xml
-<register type="IDatabaseMigrator" mapTo="Keyfactor.AnyGateway.Sectigo.Database.SectigoEsentMigrator, SectigoEsentMigrator" />
-```
-
-Addtionally, to address differences in version, the following ```bindingRedirect``` needs to be added as well:
-```xml
-<dependentAssembly>
-<assemblyIdentity name="CAProxy.AnyGateway.Core" publicKeyToken="0ed89d330114ab09" culture="neutral" />
-<bindingRedirect oldVersion="0.0.0.0-21.3.2.0" newVersion="21.3.2.0" />
-</dependentAssembly>	
 ```

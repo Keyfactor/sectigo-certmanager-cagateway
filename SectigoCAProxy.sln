@@ -7,11 +7,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SectigoCAProxy", "src\Secti
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SectigoCAProxyTests", "tests\SectigoCAProxyTests\SectigoCAProxyTests.csproj", "{DF57CB1F-88D4-4F1C-8BCD-91E5DF72F90C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SectigoSandbox", "src\SectigoSandbox\SectigoSandbox.csproj", "{BCD9F903-4119-42DF-8D04-BCE1F8F5B557}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{D77A55A9-5874-4E6D-AD20-202D457891C7}"
 	ProjectSection(SolutionItems) = preProject
 		CHANGELOG.md = CHANGELOG.md
+		.github\workflows\copy-manifest.yml = .github\workflows\copy-manifest.yml
+		.github\workflows\generate-readme.yml = .github\workflows\generate-readme.yml
+		integration-manifest.json = integration-manifest.json
 		.github\workflows\keyfactor-extension-release.yml = .github\workflows\keyfactor-extension-release.yml
 		README.md.tpl = README.md.tpl
 	EndProjectSection
@@ -31,9 +32,6 @@ Global
 		{DF57CB1F-88D4-4F1C-8BCD-91E5DF72F90C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{DF57CB1F-88D4-4F1C-8BCD-91E5DF72F90C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DF57CB1F-88D4-4F1C-8BCD-91E5DF72F90C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{BCD9F903-4119-42DF-8D04-BCE1F8F5B557}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{BCD9F903-4119-42DF-8D04-BCE1F8F5B557}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{BCD9F903-4119-42DF-8D04-BCE1F8F5B557}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B6BCDCDE-F514-44F0-9897-7886281F52E1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B6BCDCDE-F514-44F0-9897-7886281F52E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B6BCDCDE-F514-44F0-9897-7886281F52E1}.Release|Any CPU.ActiveCfg = Release|Any CPU

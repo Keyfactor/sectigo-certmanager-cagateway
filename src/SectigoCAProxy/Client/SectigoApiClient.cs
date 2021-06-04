@@ -50,6 +50,7 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
                         break;
                     }
 
+                    Logger.Info($"Request Certificates at Position {totalCount} with Page Size {pageSize}");
                     certsToAdd = await PageCertificates(totalCount, pageSize, filter);
                     
                     foreach (Certificate cert in certsToAdd)
@@ -74,7 +75,7 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
                         }
                         else { Logger.Trace($"Adding {cert.Id} to queue was blocked. "); }
                     }
-                    Logger.Trace($"Added {batchCount} certificates to queue for processing.");
+                    Logger.Info($"Added {batchCount} certificates to queue for processing.");
                 } while ((certsToAdd.Count + skippedCount) == pageSize);
                 certs.CompleteAdding();
             }
@@ -93,7 +94,6 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
         }
         public async Task<List<Certificate>> PageCertificates(int position = 0, int size = 25, string filter = "")
         {
-            Logger.Trace($"Request Certificates at Position {position} with Page Size {size}");
             string filterQueryString = String.IsNullOrEmpty(filter) ? string.Empty : $"&{filter}";
             var response = await RestClient.GetAsync($"api/ssl/v1?position={position}&size={size}{filterQueryString}".TrimEnd());
             return await ProcessResponse<List<Certificate>>(response);
@@ -108,7 +108,8 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
             {
                 return true;
             }
-            return await ProcessResponse<bool>(response);//Should throw an exception with error message from API
+            var failedResp = ProcessResponse<RevocationResponse>(response).Result;
+            return failedResp.IsSuccess;//Should throw an exception with error message from API
         }
         public async Task<ListOrganizationsResponse> ListOrganizations()
         {
