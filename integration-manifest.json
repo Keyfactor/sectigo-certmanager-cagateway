@@ -1,8 +1,8 @@
 {
   "$schema": "https://keyfactor.github.io/integration-manifest-schema.json",
   "integration_type": "ca-gateway",
-  "name": "Sectigo Certificate Manager AnyGateway",
+  "name": "Sectigo Certificate Manager",
   "status": "production",
   "link_github": true,
-  "description": "This integration allows for the Synchronization, Enrollment, and Revocation of TLS Certificates from a Sectigo Certificate Manager instance."
+  "description": "Sectigo Certificate Manager is a private certificate authority designed for enterprise use. The Sectigo Gateway enables the following certificate authority management functions via Keyfactor Command: Enrollment of new certificates, Revocation of existing certificates, and Synchronization of previously issued certificates."
 }
