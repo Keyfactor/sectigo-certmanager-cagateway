@@ -3,5 +3,6 @@
   "integration_type": "ca-gateway",
   "name": "Sectigo Certificate Manager AnyGateway",
   "status": "production",
+  "link_github": true,
   "description": "This integration allows for the Synchronization, Enrollment, and Revocation of TLS Certificates from a Sectigo Certificate Manager instance."
 }
