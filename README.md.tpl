@@ -3,6 +3,8 @@
 
 {{ description }}
 
+Additional information about [Sectigo Certificate Manager](https://sectigo.com/knowledge-base/product/Sectigo_Certificate_Manager_SCM)
+
 ### Supported Functionality
 * SSL Certificate Synchronization
     * Sync can be filtered by any available SSL Certificate List filter defined by the Cert Manager API
