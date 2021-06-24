@@ -1,7 +1,9 @@
-# Sectigo Certificate Manager AnyGateway
+# Sectigo Certificate Manager
 ## Ca-gateway
 
-This integration allows for the Synchronization, Enrollment, and Revocation of TLS Certificates from a Sectigo Certificate Manager instance.
+Sectigo Certificate Manager is a private certificate authority designed for enterprise use. The Sectigo Gateway enables the following certificate authority management functions via Keyfactor Command: Enrollment of new certificates, Revocation of existing certificates, and Synchronization of previously issued certificates.
+
+Additional information about [Sectigo Certificate Manager](https://sectigo.com/knowledge-base/product/Sectigo_Certificate_Manager_SCM)
 
 ### Supported Functionality
 * SSL Certificate Synchronization
