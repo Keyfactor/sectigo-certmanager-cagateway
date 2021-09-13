@@ -40,6 +40,11 @@ namespace Keyfactor.AnyGateway.Sectigo.API
         public DateTime? approved { get; set; }
         public DateTime? revoked { get; set; }
         public string status { get; set; }
+
+        public override string ToString()
+        {
+            return $"sslId:{this.Id} | commonName:{this.CommonName} | serialNumber:{this.SerialNumber}";
+        }
     }
 
     public class SubjectAltName
