@@ -20,6 +20,9 @@ Additional information about [Sectigo Certificate Manager](https://sectigo.com/k
 * Client Certificates
 * Code Signing
 
+## Compatibility
+This AnyGateway is designed to be used with version 21.3.2 of the Keyfactor AnyGateway Framework
+
 ## Prerequisites
 
 ### Certificate Chain
