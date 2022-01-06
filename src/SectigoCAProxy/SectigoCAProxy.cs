@@ -63,7 +63,8 @@ namespace Keyfactor.AnyGateway.Sectigo
             {
                 var certsToAdd = new BlockingCollection<Certificate>(100);
                 Logger.Info($"Begin Paging Certificate List");
-                producerTask = Client.CertificateListProducer(certsToAdd, newCancelToken.Token, Config.PageSize, Config.GetSyncFilterQueryString());
+                //producerTask = Client.CertificateListProducer(certsToAdd, newCancelToken.Token, Config.PageSize, Config.GetSyncFilterQueryString());
+                producerTask = Client.CertificateListProducer(certsToAdd, newCancelToken.Token, Config.PageSize, Config.SyncFilter);
 
                 foreach (Certificate certToAdd in certsToAdd.GetConsumingEnumerable())
                 {
@@ -81,7 +82,7 @@ namespace Keyfactor.AnyGateway.Sectigo
                     }
 
                     CAConnectorCertificate dbCert=null;
-                    //serial number is blank on certs that have not been issed (awaiting approval)
+                    //serial number is blank on certs that have not been issued (awaiting approval)
                     if(!String.IsNullOrEmpty(certToAdd.SerialNumber))
                         dbCert = certificateDataReader.GetCertificateRecord(CSS.Common.DataConversion.HexToBytes(certToAdd.SerialNumber));
                     
@@ -275,7 +276,8 @@ namespace Keyfactor.AnyGateway.Sectigo
                 }
              
                 Department ou = null;
-                if (org.certTypes.Count == 0)
+                //API returned no CertType node or it was an empty string.  This changed at some point with the Sectigo API. 
+                if (org.certTypes == null || org.certTypes.Count == 0)
                 {
                     Logger.Trace($"{orgStr} does not contain a valid certificate type configuration. Verify Org Unit");
                     ou = org.departments.Where(x => x.name.ToLower().Equals(ouStr.ToLower())).FirstOrDefault();
@@ -361,7 +363,7 @@ namespace Keyfactor.AnyGateway.Sectigo
             {
                 Logger.Error($"Enrollment Failed with the following error: {ex.Message}");
                 Logger.Error($"Inner Exception Message: {ex.InnerException.Message}");
-                return new EnrollmentResult { Status = 30, StatusMessage = ex.Message };
+                return new EnrollmentResult { Status = 30, StatusMessage = ex.InnerException.Message };
             }
         }
 
@@ -460,6 +462,10 @@ namespace Keyfactor.AnyGateway.Sectigo
             Logger.MethodEntry(ILogExtensions.MethodLogLevel.Debug);
 
             Config = JsonConvert.DeserializeObject<SectigoCAConfig>(JsonConvert.SerializeObject(configProvider.CAConnectionData));
+            if (Config.PageSize > 200)
+            {
+                Config.PageSize = 200;//max value allowed by API
+            }
 
             Client = InitializeRestClient(configProvider.CAConnectionData, Logger);
 
@@ -643,11 +649,10 @@ namespace Keyfactor.AnyGateway.Sectigo
                 case "NOT ENROLLED":
                     return 13;
                 case "REVOKED":
-                case "EXPIRED":
                     return 21;
                 case "ANY":
                 default:
-                    return -1;//unknown
+                    return (int)CSS.PKI.PKIConstants.Microsoft.RequestDisposition.UNKNOWN;//unknown
             }
 
         }

@@ -33,51 +33,66 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
         public async Task CertificateListProducer(BlockingCollection<Certificate> certs, 
                         CancellationToken cancelToken, int pageSize=25, string filter = "")
         {
+            
             int batchCount;
-            int skippedCount;
+            int blockedCount;
             int totalCount = 0;
-            List<Certificate> certsToAdd;
+            
+            List<Certificate> certificatePageToProcess;
             try
             {
+                //Paging loop will iterate though the certificates until all certificates have been returned
                 do
                 {
 
-                    batchCount = 0;
-                    skippedCount = 0;
                     if (cancelToken.IsCancellationRequested)
                     {
                         certs.CompleteAdding();
                         break;
                     }
 
-                    Logger.Info($"Request Certificates at Position {totalCount} with Page Size {pageSize}");
-                    certsToAdd = await PageCertificates(totalCount, pageSize, filter);
-                    
-                    foreach (Certificate cert in certsToAdd)
+                    int certIndex = totalCount > 0 ? (totalCount - 1) : 0;
+                    Logger.Info($"Request Certificates at Position {certIndex} with Page Size {pageSize}");
+                    certificatePageToProcess = await PageCertificates(certIndex, pageSize, filter);
+                    Logger.Debug($"Found {certificatePageToProcess.Count} certificate to process");
+
+                    //Processing Loop will add and retry adding to queue until all certificates have been processed for a page
+                    batchCount = 0;
+                    blockedCount = 0;
+                    do 
                     {
-                        
+                        Certificate cert = certificatePageToProcess[batchCount];
+                        Logger.Debug($"Processing: {cert}");
                         Certificate certDetails = null;
                         try
                         {
-                            certDetails = await GetCertificate(cert.Id);
+                            if(certDetails==null)
+                                certDetails = await GetCertificate(cert.Id);
                         }
                         catch (SectigoApiException aEx)
                         {
                             Logger.Error($"Error requesting certificate details. Skipping certificate. {aEx.Message}");
-                            skippedCount++;
+                            batchCount++;
                             continue;
                         }
-                        
+
                         if (certs.TryAdd(certDetails, 50, cancelToken))
                         {
                             batchCount++;
                             totalCount++;
                         }
-                        else { Logger.Trace($"Adding {cert.Id} to queue was blocked. "); }
-                    }
+                        else 
+                        { 
+                            Logger.Trace($"Adding {cert.Id} to queue was blocked. Retry");
+                            blockedCount++;//TODO: If blocked count is excessive, should we skip?
+                        }
+                        certIndex++;
+                    } 
+                    while (batchCount < certificatePageToProcess.Count);
+
                     Logger.Info($"Added {batchCount} certificates to queue for processing.");
-                } while ((certsToAdd.Count + skippedCount) == pageSize);
-                certs.CompleteAdding();
+
+                } while (certificatePageToProcess.Count == pageSize);//if the API returns less than we requested, we assume we have reached the end
             }
             catch (HttpRequestException hEx)
             {
@@ -92,9 +107,25 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
                 certs.CompleteAdding();//Stops the consuming enumerable and sync will continue until the queue is empty
             }
         }
+
+        public async Task CertificateListProducer(BlockingCollection<Certificate> certs,
+                        CancellationToken cancelToken, int pageSize = 25, Dictionary<string, string[]>  filter = null)
+        {
+
+            //each kvp key = type, value each filter
+            foreach (var s in filter)
+            {
+                foreach(var value in s.Value)
+                    await CertificateListProducer(certs, cancelToken, pageSize, $"{s.Key}={value}");
+            }
+
+            certs.CompleteAdding();
+        }
+        
         public async Task<List<Certificate>> PageCertificates(int position = 0, int size = 25, string filter = "")
         {
             string filterQueryString = String.IsNullOrEmpty(filter) ? string.Empty : $"&{filter}";
+            Logger.Trace($"API Request: api/ssl/v1?position={position}&size={size}{filterQueryString}".TrimEnd());
             var response = await RestClient.GetAsync($"api/ssl/v1?position={position}&size={size}{filterQueryString}".TrimEnd());
             return await ProcessResponse<List<Certificate>>(response);
         }
@@ -164,11 +195,11 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
             }
             catch (InvalidOperationException invalidOp)
             {
-                throw new Exception($"Invalid Operation. {invalidOp.Message}|{invalidOp.StackTrace}");
+                throw new Exception($"Invalid Operation. {invalidOp.Message}|{invalidOp.StackTrace}", invalidOp) ;
             }
             catch (HttpRequestException httpEx)
             {
-                throw new Exception($"HttpRequestException. {httpEx.Message}|{httpEx.StackTrace}");
+                throw new Exception($"HttpRequestException. {httpEx.Message}|{httpEx.StackTrace}", httpEx);
             }
             catch (SectigoApiException)
             {

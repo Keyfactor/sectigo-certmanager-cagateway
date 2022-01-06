@@ -88,7 +88,7 @@ namespace SectigoCAProxyTests
             var certBuffer = new BlockingCollection<Certificate>(100);
             var cancelToken = new CancellationToken();
 
-            var producerTask = apiClient.CertificateListProducer(certBuffer, cancelToken, 2);
+            var producerTask = apiClient.CertificateListProducer(certBuffer, cancelToken, 2,"");
 
             foreach (var c in certBuffer.GetConsumingEnumerable())
             {
