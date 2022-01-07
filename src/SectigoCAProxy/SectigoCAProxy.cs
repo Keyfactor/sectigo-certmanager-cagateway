@@ -63,7 +63,11 @@ namespace Keyfactor.AnyGateway.Sectigo
             {
                 var certsToAdd = new BlockingCollection<Certificate>(100);
                 Logger.Info($"Begin Paging Certificate List");
-                //producerTask = Client.CertificateListProducer(certsToAdd, newCancelToken.Token, Config.PageSize, Config.GetSyncFilterQueryString());
+                int pageSize = 25;
+                if (Config.PageSize > 0)
+                {
+                    pageSize = Config.PageSize;
+                }
                 producerTask = Client.CertificateListProducer(certsToAdd, newCancelToken.Token, Config.PageSize, Config.SyncFilter);
 
                 foreach (Certificate certToAdd in certsToAdd.GetConsumingEnumerable())
