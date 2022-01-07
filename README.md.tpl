@@ -139,11 +139,11 @@ This setting determine the number of times the service will attempt to download 
 * ```PickupDelay```
 This is the number of seconds between retries.  Be aware that the total # of retries times the number of seconds will be an amount of time the portal will be occupied during enrollment. If the duration is too long the request may timeout and cause unexpected results. 
 * ```PageSize```
-This is the number of certificates per request that will be processed during sync. 
+This is the number of certificates per request that will be processed during sync. If not provided, default is 25.
 * ```ExternalRequestorFieldName```
 This is the Enrollment Field name that can be populated to pass an email address to Sectigo for enrollment notifications.  If blank, the API will default to the email address of the API user configured in the username field above. 
 * ```SyncFilter```
-This object will allow the implementation team to determine how the synchronization process limits certificates.  All SSL List filter parameters should be supported.  The example below shows filtering based on specific templates that should only be synchronized by a particular CA.[Support Article for API detail](https://support.sectigo.com/Com_KnowledgeDetailPage?Id=kA01N000000XDkE)
+This object will allow the implementation team to determine how the synchronization process limits certificates. If not provided, no filtering will be done, and all certs returned. All SSL List filter parameters should be supported.  The example below shows filtering based on specific templates that should only be synchronized by a particular CA.[Support Article for API detail](https://support.sectigo.com/Com_KnowledgeDetailPage?Id=kA01N000000XDkE)
 
 ```json
   "CAConnection": {
