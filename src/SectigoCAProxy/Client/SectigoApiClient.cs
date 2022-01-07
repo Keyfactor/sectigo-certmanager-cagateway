@@ -111,13 +111,20 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
         public async Task CertificateListProducer(BlockingCollection<Certificate> certs,
                         CancellationToken cancelToken, int pageSize = 25, Dictionary<string, string[]>  filter = null)
         {
-
-            //each kvp key = type, value each filter
-            foreach (var s in filter)
+            if (filter != null && filter.Count > 0)
             {
-                foreach(var value in s.Value)
-                    await CertificateListProducer(certs, cancelToken, pageSize, $"{s.Key}={value}");
+                //each kvp key = type, value each filter
+                foreach (var s in filter)
+                {
+                    foreach (var value in s.Value)
+                        await CertificateListProducer(certs, cancelToken, pageSize, $"{s.Key}={value}");
+                }
             }
+            else
+			{
+                // No filters
+                await CertificateListProducer(certs, cancelToken, pageSize, "");
+			}
 
             certs.CompleteAdding();
         }
