@@ -169,7 +169,6 @@ Password AuthType:
 ```
 
 Certificate AuthType:
-Password AuthType:
 ```json
   "CAConnection": {
 	"ApiEndpoint":"https://hard.cert-manager.com/private/",
