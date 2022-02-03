@@ -128,9 +128,9 @@ The Certificate Managers section is optional.
 ### CAConnection
 The CA Connection section will determine the API endpoint and configuration data used to connect to Sectigo Cert Manager. 
 * ```ApiEndpoint```
-This is the endpoint used by the Gateway to connect to the API. There are a few possible values depending on the Customer's configuration.  
+This is the endpoint used by the Gateway to connect to the API. There are a few possible values depending on the Customer's configuration. NOTE: If doing mTLS/Certificate Auth, this endpoint should end in /private/ (see examples below)
 * ```AuthType```
-This value must be Password or Certificate.  It will determine what credentials are used to connect to the API
+This value must be Password or Certificate.  It will determine what credentials are used to connect to the API. NOTE: mTLS/Certificate Auth will not work properly if there is a proxy doing TLS inspection.
 * ```Username```  
 This is the username associated with the API login and will determine the security role in the Certificate Manager platform. 
 * ```Password```
@@ -150,12 +150,31 @@ This is the Enrollment Field name that can be populated to pass an email address
 * ```SyncFilter```
 This object will allow the implementation team to determine how the synchronization process limits certificates. If not provided, no filtering will be done, and all certs will be returned. All SSL List filter parameters should be supported.  The example below shows filtering based on specific templates that should only be synchronized by a particular CA.[Support Article for API detail](https://support.sectigo.com/Com_KnowledgeDetailPage?Id=kA01N000000XDkE)
 
+Password AuthType:
 ```json
   "CAConnection": {
 	"ApiEndpoint":"https://hard.cert-manager.com/",
 	"AuthType":"Password",
 	"Username":"Username",
 	"Password":"ThisIsMyPassword",
+	"CustomerUri":"findmeintheportal-url",
+	"PickupRetries":5,
+	"PickupDelay":10,
+	"PageSize":100,
+	"ExternalRequestorFieldName":"",
+	"SyncFilter":{
+		"sslTypeId":["14078","14079","14065"]
+	}
+  }
+```
+
+Certificate AuthType:
+Password AuthType:
+```json
+  "CAConnection": {
+	"ApiEndpoint":"https://hard.cert-manager.com/private/",
+	"AuthType":"Certificate",
+	"Username":"Username",
 	"CustomerUri":"findmeintheportal-url",
 	"ClientCertificate":{
 		"StoreName": "My",
@@ -171,6 +190,7 @@ This object will allow the implementation team to determine how the synchronizat
 	}
   }
 ```
+
 ### GatewayRegistration
 There are no specific Changes for the GatewayRegistration section. Refer to the Refer to the AnyGateway Documentation for more detail.
 ```json
