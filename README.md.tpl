@@ -191,7 +191,7 @@ Certificate AuthType:
 ```
 
 ### GatewayRegistration
-There are no specific Changes for the GatewayRegistration section. Refer to the Refer to the AnyGateway Documentation for more detail.
+There are no specific Changes for the GatewayRegistration section. Refer to the AnyGateway Documentation for more detail.
 ```json
   "GatewayRegistration": {
     "LogicalName": "SectigoCASandbox",
@@ -204,7 +204,7 @@ There are no specific Changes for the GatewayRegistration section. Refer to the 
 ```
 
 ### ServiceSettings
-There are no specific Changes for the GatewayRegistration section. Refer to the Refer to the AnyGateway Documentation for more detail.
+There are no specific Changes for the GatewayRegistration section. Refer to the AnyGateway Documentation for more detail.
 ```json
   "ServiceSettings": {
     "ViewIdleMinutes": 8,
