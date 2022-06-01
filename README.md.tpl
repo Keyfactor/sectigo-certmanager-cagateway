@@ -48,13 +48,19 @@ To begin the migration process, the DatabaseManagementConsole.exe.config will ne
 The following sections will breakdown the required configurations for the AnyGatewayConfig.json file that will be imported to configure the AnyGateway.
 
 ### Templates
-The Template section will map the CA's SSL profile to an AD template. Currently the only required parameter is the MultiDomain flag. This flag lets Keyfactor know if the certificate can contain multiple domain names.  Depending on the setting, the SAN entries of the request will change to support Sectigo Requirements. 
+The Template section will map the CA's SSL profile to an AD template. The following parameters are accepted:
+* ```MultiDomain```
+REQUIRED. This flag lets Keyfactor know if the certificate can contain multiple domain names.  Depending on the setting, the SAN entries of the request will change to support Sectigo Requirements. 
+* ```Department```
+OPTIONAL. If your Sectigo account is using department-level products, put the appropriate department name here. Previous versions of the Sectigo gateway read this value from the OU field of the subject, which is now deprecated.
+
  ```json
   "Templates": {
 	"SectigoEnterpriseSSLPro1yr": {
            "ProductID": "3210", /*Sectigo EnterpriseSSL Pro - ID from Cert Manager*/
            "Parameters": {
-                 "MultiDomain": "false"
+                 "MultiDomain": "false",
+				 "Department": "Department Name"
       }
    }
 }
