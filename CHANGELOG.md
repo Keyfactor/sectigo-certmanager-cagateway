@@ -8,3 +8,5 @@
 * Documentation updates, EsentMigration, and Update Package References
 # 1.0.4
 * Workflow updates, documentation, and enhanced EV support
+# 1.0.7
+* OU deprecation, added Parameters field to the Template section in the config to specify department name, if needed.
