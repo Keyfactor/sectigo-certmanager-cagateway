@@ -252,7 +252,7 @@ namespace Keyfactor.AnyGateway.Sectigo
 				string orgStr = ParseSubject(subject, "O=");
 				Logger.Trace($"Organization: {orgStr}");
 
-				string ouStr = ParseSubject(subject, "OU=");
+				string ouStr = ParseSubject(subject, "OU=", false);
 
 				string department = productInfo.ProductParameters["Department"];
 				Logger.Trace($"Department: {department}");
@@ -619,7 +619,7 @@ namespace Keyfactor.AnyGateway.Sectigo
 			return sanList;
 		}
 
-		private static string ParseSubject(string subject, string rdn)
+		private static string ParseSubject(string subject, string rdn, bool required = true)
 		{
 			string escapedSubject = subject.Replace("\\,", "|");
 			string rdnString = escapedSubject.Split(',').ToList().Where(x => x.Contains(rdn)).FirstOrDefault();
@@ -628,9 +628,13 @@ namespace Keyfactor.AnyGateway.Sectigo
 			{
 				return rdnString.Replace(rdn, "").Replace("|", ",").Trim();
 			}
-			else
+			else if (required)
 			{
 				throw new Exception($"The request is missing a {rdn} value");
+			}
+			else
+			{
+				return null;
 			}
 		}
 
