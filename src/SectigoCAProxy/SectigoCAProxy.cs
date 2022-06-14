@@ -254,8 +254,12 @@ namespace Keyfactor.AnyGateway.Sectigo
 
 				string ouStr = ParseSubject(subject, "OU=", false);
 
-				string department = productInfo.ProductParameters["Department"];
-				Logger.Trace($"Department: {department}");
+				string department = null;
+				if (productInfo.ProductParameters.ContainsKey("Department"))
+				{
+					department = productInfo.ProductParameters["Department"];
+					Logger.Trace($"Department: {department}");
+				}
 
 				var fieldList = Task.Run(async () => await Client.ListCustomFields()).Result;
 				var mandatoryFields = fieldList.CustomFields?.Where(f => f.mandatory);
