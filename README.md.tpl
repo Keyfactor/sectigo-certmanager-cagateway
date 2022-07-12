@@ -10,7 +10,7 @@
     * Certificates will only syncronize once.  If a certificate is found based on Serial Number for the managed CA it will be skipped for subsequent syncs to minimize impact on Cert Manager API load
 
 * SSL Certificate Enrollment
-   * Note about organizations.  The organization for enrollment is currently selected dynamically based on Organization and/or Org Unit of the CSR.  If a top level Organization is found and is able to issue certs, that organization ID is passed with the enrollment request.  If the Organization does not have any certificate types assigned, it will look for a department based on the OU name. If no matches are found the enrollment will fail as this is a required field for Sectigo. 
+   * Note about organizations.  The organization for enrollment is selected based on the Organization subject field, as well as any Department specified in the template configuration. If a department is specified, and that department exists within the organization and is valid for issuing certs, the department ID will be used. If no department is specified, the organization ID will be used if the organization is valid for issuing certs. If the organization/department are not valid for issuing certs, the enrollment will fail, as that is a required field for Sectigo.
 * SSL Certificate Revocation
 
 ### Not Implemented/Supported
