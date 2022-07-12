@@ -276,7 +276,7 @@ namespace Keyfactor.AnyGateway.Sectigo
 				}
 				Logger.Debug($"Search for Organization by Name {orgStr}");
 
-				int requstOrgId = 0;
+				int requestOrgId = 0;
 				var org = Task.Run(async () => await GetOrganizationAsync(orgStr)).Result;
 				if (org == null)
 				{
@@ -285,22 +285,18 @@ namespace Keyfactor.AnyGateway.Sectigo
 					return new EnrollmentResult { Status = 30, StatusMessage = err };
 				}
 
-				Department dep = null;
-				//API returned no CertType node or it was an empty string.  This changed at some point with the Sectigo API.
-				if (org.certTypes == null || org.certTypes.Count == 0)
+				if (!string.IsNullOrEmpty(department))
 				{
-					Logger.Trace($"{orgStr} does not contain a valid certificate type configuration. Checking department.");
-					if (string.IsNullOrEmpty(department))
+					// If department is specified in the config for this product type, look up the department configuration
+
+					if (org.departments == null || org.departments.Count == 0)
 					{
-						string err = $"No department specified, and organization {orgStr} does not contain valid certificate type configuration. Verify account and gateway configuration.";
+						string err = $"Department {department} not found: no departments found in organization {orgStr}";
 						Logger.Error($"{err}");
-						if (!string.IsNullOrEmpty(ouStr))
-						{
-							Logger.Error("NOTE: Organizational Unit subject field has been deprecated. Department names must now be specified in the gateway template configuration. See documentation for details.");
-						}
 						return new EnrollmentResult { Status = 30, StatusMessage = err };
 					}
-					dep = org.departments.Where(x => x.name.ToLower().Equals(department.ToLower())).FirstOrDefault();
+
+					Department dep = org.departments.Where(d => d.name.Equals(department, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
 
 					if (dep == null)
 					{
@@ -309,13 +305,40 @@ namespace Keyfactor.AnyGateway.Sectigo
 						return new EnrollmentResult { Status = 30, StatusMessage = err };
 					}
 
-					Logger.Trace($"{dep} is valid. Apply {dep.id} to request");
-					requstOrgId = dep.id;
+					Logger.Debug($"Retrieving details of department {department}");
+
+					var orgDetails = Task.Run(async () => await Client.GetOrganizationDetails(dep.id)).Result;
+
+					if (orgDetails.CertTypes == null || orgDetails.CertTypes.Count == 0)
+					{
+						string err = $"Department {department} does not contain a valid certificate type configuration. Please verify account configuration.";
+						Logger.Error($"{err}");
+						return new EnrollmentResult { Status = 30, StatusMessage = err };
+					}
+
+					Logger.Debug($"Department {dep.name} is valid. Using ID {dep.id} for request");
+					requestOrgId = dep.id;
 				}
 				else
 				{
-					Logger.Trace($"{orgStr} contain a valid certificate type configuration. Apply {org.id} to request");
-					requstOrgId = org.id;
+					// If no department is specified, look up the config of the organization itself
+
+					Logger.Debug($"Retrieving details of organization {orgStr}");
+					var orgDetails = Task.Run(async () => await Client.GetOrganizationDetails(org.id)).Result;
+
+					if (orgDetails.CertTypes == null || orgDetails.CertTypes.Count == 0)
+					{
+						string err = $"Organization {orgStr} does not contain a valid certificate type configuration, and no department was specified.Please verify account configuration.";
+						Logger.Error($"{err}");
+						if (!string.IsNullOrEmpty(ouStr))
+						{
+							Logger.Error("NOTE: Organizational Unit subject field has been deprecated. Department names must now be specified in the gateway template configuration. See documentation for details.");
+						}
+						return new EnrollmentResult { Status = 30, StatusMessage = err };
+					}
+
+					Logger.Debug($"Organization {org.name} is valid. Using ID {org.id} for request");
+					requestOrgId = org.id;
 				}
 
 				//Check if SAN matches the SUBJECT CN when multidomain = false (single domain cert).
@@ -342,7 +365,7 @@ namespace Keyfactor.AnyGateway.Sectigo
 						EnrollRequest request = new EnrollRequest
 						{
 							csr = csr,
-							orgId = requstOrgId,
+							orgId = requestOrgId,
 							term = Task.Run(async () => await GetProfileTerm(int.Parse(productInfo.ProductID))).Result,
 							certType = enrollmentProfile.id,
 							//External requestor is expected to be an email. Use config to pull the enrollment field or send blank

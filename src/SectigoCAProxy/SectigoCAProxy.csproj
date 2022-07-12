@@ -94,6 +94,7 @@
     <Compile Include="API\Error.cs" />
     <Compile Include="API\ListCertificatesResponse.cs" />
     <Compile Include="API\ListCustomFieldsResponse.cs" />
+    <Compile Include="API\OrganizationDetailsResponse.cs" />
     <Compile Include="API\ListOrganizationsResponse.cs" />
     <Compile Include="API\ListPersonsResponse.cs" />
     <Compile Include="API\ListSslProfilesResponse.cs" />

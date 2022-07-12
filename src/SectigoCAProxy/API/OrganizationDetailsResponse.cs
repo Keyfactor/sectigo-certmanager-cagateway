@@ -15,21 +15,15 @@ using System.Threading.Tasks;
 
 namespace Keyfactor.AnyGateway.Sectigo.API
 {
-	public class ListOrganizationsResponse
+	public class OrganizationDetailsResponse
 	{
-		public List<Organization> Organizations { get; set; }
-	}
+		[JsonProperty("id")]
+		public int Id { get; set; }
 
-	public class Organization
-	{
-		public int id { get; set; }
-		public string name { get; set; }
-		public List<Department> departments { get; set; }
-	}
+		[JsonProperty("name")]
+		public string Name { get; set; }
 
-	public class Department
-	{
-		public int id { get; set; }
-		public string name { get; set; }
+		[JsonProperty("certTypes")]
+		public List<string> CertTypes { get; set; }
 	}
 }
