@@ -10,3 +10,7 @@
 * Workflow updates, documentation, and enhanced EV support
 # 1.0.7
 * OU deprecation, added Parameters field to the Template section in the config to specify department name, if needed.
+# 1.0.9
+* Made Department field optional
+# 1.0.10
+* Handle change to Sectigo API for organization/department lookups
