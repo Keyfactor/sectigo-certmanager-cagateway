@@ -444,8 +444,7 @@ namespace Keyfactor.AnyGateway.Sectigo
 
 		public EnrollmentResult PickUpEnrolledCertificate(Certificate sslCert)
 		{
-			if (sslCert.status.Equals("Issued", StringComparison.InvariantCultureIgnoreCase) ||
-				sslCert.status.Equals("Applied", StringComparison.InvariantCultureIgnoreCase))
+			if (sslCert.status.Equals("Issued", StringComparison.InvariantCultureIgnoreCase))
 			{
 				return PickUpEnrolledCertificate(sslCert.Id, sslCert.CommonName);
 			}
@@ -688,13 +687,13 @@ namespace Keyfactor.AnyGateway.Sectigo
 				case "ISSUED":
 				case "ENROLLED - PENDING DOWNLOAD":
 				case "APPROVED":
-				case "APPLIED":
 				case "DOWNLOADED":
 					return 20;
 
 				case "REQUESTED":
 				case "AWAITING APPROVAL":
 				case "NOT ENROLLED":
+				case "APPLIED":
 					return 13;
 
 				case "REVOKED":
