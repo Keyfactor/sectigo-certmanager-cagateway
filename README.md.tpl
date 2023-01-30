@@ -56,6 +56,8 @@ The following sections will breakdown the required configurations for the AnyGat
 The Template section will map the CA's SSL profile to an AD template. The following parameters are accepted:
 * ```MultiDomain```
 REQUIRED. This flag lets Keyfactor know if the certificate can contain multiple domain names.  Depending on the setting, the SAN entries of the request will change to support Sectigo Requirements. 
+* ```Organization```
+OPTIONAL. If the organization name is provided as a parameter here, the Sectigo gateway will use that organization name in requests, instead of the O field in the subject.
 * ```Department```
 OPTIONAL. If your Sectigo account is using department-level products, put the appropriate department name here. Previous versions of the Sectigo gateway read this value from the OU field of the subject, which is now deprecated.
 
@@ -65,7 +67,8 @@ OPTIONAL. If your Sectigo account is using department-level products, put the ap
            "ProductID": "3210", /*Sectigo EnterpriseSSL Pro - ID from Cert Manager*/
            "Parameters": {
                  "MultiDomain": "false",
-				 "Department": "Department Name"
+				 "Department": "Department Name",
+				 "Organization": "Organization Name"
       }
    }
 }
