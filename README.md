@@ -1,4 +1,18 @@
 # Sectigo Certificate Manager
+
+Sectigo Certificate Manager is a private certificate authority designed for enterprise use. The Sectigo Gateway enables the following certificate authority management functions via Keyfactor Command: Enrollment of new certificates, Revocation of existing certificates, and Synchronization of previously issued certificates.
+
+#### Integration status: Production - Ready for use in production environments.
+
+## About the Keyfactor AnyGateway CA Connector
+
+This repository contains an AnyGateway CA Connector, which is a plugin to the Keyfactor AnyGateway. AnyGateway CA Connectors allow Keyfactor Command to be used for inventory, issuance, and revocation of certificates from a third-party certificate authority.
+
+
+
+
+
+# Sectigo Certificate Manager
 ## Ca-gateway
 
 Sectigo Certificate Manager is a private certificate authority designed for enterprise use. The Sectigo Gateway enables the following certificate authority management functions via Keyfactor Command: Enrollment of new certificates, Revocation of existing certificates, and Synchronization of previously issued certificates.
@@ -218,3 +232,4 @@ There are no specific Changes for the GatewayRegistration section. Refer to the 
 	"PartialScanPeriodMinutes": 480 /*Note partial sync based on a timestamp is not supported by the Sectigo API. As a result all syncs with the API are treated as full syncronization jobs*/
   }
 ```
+
