@@ -249,7 +249,20 @@ namespace Keyfactor.AnyGateway.Sectigo
 				string commonName = ParseSubject(subject, "CN=");
 				Logger.Trace($"Common Name: {commonName}");
 
-				string orgStr = ParseSubject(subject, "O=");
+				string orgStr = null;
+				if (productInfo.ProductParameters.ContainsKey("Organization"))
+				{
+					if (!productInfo.ProductParameters.TryGetValue("Organization", out orgStr))
+					{
+						throw new Exception("Organization parameter could not be parsed, check configuration");
+					}
+				}
+
+				if (string.IsNullOrEmpty(orgStr))
+				{
+					orgStr = ParseSubject(subject, "O=");
+				}
+
 				Logger.Trace($"Organization: {orgStr}");
 
 				string ouStr = ParseSubject(subject, "OU=", false);
