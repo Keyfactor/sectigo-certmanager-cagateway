@@ -14,3 +14,5 @@
 * Made Department field optional
 # 1.0.10
 * Handle change to Sectigo API for organization/department lookups
+# 1.1.0
+* Allow organization name to be provided in the template section of the config
