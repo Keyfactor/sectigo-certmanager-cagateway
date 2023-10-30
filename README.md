@@ -10,7 +10,11 @@ Sectigo Certificate Manager is a private certificate authority designed for ente
 This repository contains an AnyGateway CA Connector, which is a plugin to the Keyfactor AnyGateway. AnyGateway CA Connectors allow Keyfactor Command to be used for inventory, issuance, and revocation of certificates from a third-party certificate authority.
 
 
+## Support for Sectigo Certificate Manager
 
+Sectigo Certificate Manager 
+
+###### To report a problem or suggest a new feature, use the **[Issues](../../issues)** tab. If you want to contribute actual bug fixes or proposed enhancements, use the **[Pull requests](../../pulls)** tab.
 
 
 ---
