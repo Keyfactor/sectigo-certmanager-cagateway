@@ -800,9 +800,15 @@ namespace Keyfactor.AnyGateway.Sectigo
 				webRequestHandler.ClientCertificates.Add(authCert);
 			}
 
+			string apiEndpoint = localConfig.ApiEndpoint;
+			if (!apiEndpoint.EndsWith("/"))
+			{
+				apiEndpoint += "/";
+			}
+
 			HttpClient restClient = new HttpClient(webRequestHandler)
 			{
-				BaseAddress = new Uri(localConfig.ApiEndpoint)
+				BaseAddress = new Uri(apiEndpoint)
 			};
 
 			restClient.DefaultRequestHeaders.Add(Constants.CUSTOMER_URI_KEY, localConfig.CustomerUri);
