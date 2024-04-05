@@ -52,13 +52,17 @@ Additional information about [Sectigo Certificate Manager](https://sectigo.com/k
 * Code Signing
 
 ## Compatibility
-This AnyGateway is designed to be used with version 21.3.2 of the Keyfactor AnyGateway Framework
+This AnyGateway is designed to be used with version 21.3.2 or newer of the Keyfactor AnyGateway DCOM Framework
 
 ## Prerequisites
 
 ### Certificate Chain
 
 In order to enroll for certificates the Keyfactor Command server must trust the trust chain. Once you create your Root and/or Subordinate CA, make sure to import the certificate chain into the Command Server certificate store
+
+### Sectigo Settings
+For each Organization/Department you plan on using through the gateway, in your Sectigo portal, go to that Organization, select Certificate Settings -> SSL Certificates, and check the "Enable Web/REST API" checkbox.  
+In addition, for the admin account you plan to use, make sure it has the API admin type selected in the portal.
 
 ### Migration
 In the event that a system is being upgraded from the Legacy Sectigo CA Gateway (19.4 or older), a migration from the legacy database format to the AnyGateway format will be required. 
