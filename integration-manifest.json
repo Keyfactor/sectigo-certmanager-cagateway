@@ -3,6 +3,9 @@
   "integration_type": "ca-gateway",
   "name": "Sectigo Certificate Manager",
   "status": "production",
+  "update_catalog": true,
   "link_github": true,
+  "release_dir": "src/SectigoCAProxy/bin/Release",
+  "support_level": "kf-supported",
   "description": "Sectigo Certificate Manager is a private certificate authority designed for enterprise use. The Sectigo Gateway enables the following certificate authority management functions via Keyfactor Command: Enrollment of new certificates, Revocation of existing certificates, and Synchronization of previously issued certificates."
 }
