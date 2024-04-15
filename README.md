@@ -1,20 +1,21 @@
+
 # Sectigo Certificate Manager
 
 Sectigo Certificate Manager is a private certificate authority designed for enterprise use. The Sectigo Gateway enables the following certificate authority management functions via Keyfactor Command: Enrollment of new certificates, Revocation of existing certificates, and Synchronization of previously issued certificates.
 
 #### Integration status: Production - Ready for use in production environments.
 
+## About the Keyfactor AnyCA Gateway DCOM Connector
 
-## About the Keyfactor AnyGateway CA Connector
-
-This repository contains an AnyGateway CA Connector, which is a plugin to the Keyfactor AnyGateway. AnyGateway CA Connectors allow Keyfactor Command to be used for inventory, issuance, and revocation of certificates from a third-party certificate authority.
-
+This repository contains an AnyCA Gateway Connector, which is a plugin to the Keyfactor AnyGateway. AnyCA Gateway Connectors allow Keyfactor Command to be used for inventory, issuance, and revocation of certificates from a third-party certificate authority.
 
 ## Support for Sectigo Certificate Manager
 
-Sectigo Certificate Manager 
+Sectigo Certificate Manager is supported by Keyfactor for Keyfactor customers. If you have a support issue, please open a support ticket via the Keyfactor Support Portal at https://support.keyfactor.com
 
 ###### To report a problem or suggest a new feature, use the **[Issues](../../issues)** tab. If you want to contribute actual bug fixes or proposed enhancements, use the **[Pull requests](../../pulls)** tab.
+
+---
 
 
 ---
@@ -23,6 +24,16 @@ Sectigo Certificate Manager
 
 
 
+## Keyfactor AnyCA Gateway Framework Supported
+The Keyfactor gateway framework implements common logic shared across various gateway implementations and handles communication with Keyfactor Command. The gateway framework hosts gateway implementations or plugins that understand how to communicate with specific CAs. This allows you to integrate your third-party CAs with Keyfactor Command such that they behave in a manner similar to the CAs natively supported by Keyfactor Command.
+
+
+
+
+This gateway extension was compiled against version  of the AnyCA Gateway DCOM Framework.  You will need at least this version of the framework Installed. If you have a later AnyGateway Framework Installed you will probably need to add binding redirects in the CAProxyServer.exe.config file to make things work properly.
+
+
+[Keyfactor CAGateway Install Guide](https://software.keyfactor.com/Guides/AnyGateway_Generic/Content/AnyGateway/Introduction.htm)
 
 
 
