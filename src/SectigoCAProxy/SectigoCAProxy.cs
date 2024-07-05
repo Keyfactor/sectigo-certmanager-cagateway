@@ -394,6 +394,8 @@ namespace Keyfactor.AnyGateway.Sectigo
 						};
 
 						Logger.Debug($"Submit {enrollmentType} request");
+						var jsonReq = JsonConvert.SerializeObject(request, Formatting.Indented);
+						Logger.Debug($"Request object: {jsonReq}");
 						sslId = Task.Run(async () => await Client.Enroll(request)).Result;
 						newCert = Task.Run(async () => await Client.GetCertificate(sslId)).Result;
 						Logger.Debug($"Enrolled for Certificate {newCert.CommonName} (ID: {newCert.Id}) | Status: {newCert.status}. Attempt to Pickup Certificate.");
