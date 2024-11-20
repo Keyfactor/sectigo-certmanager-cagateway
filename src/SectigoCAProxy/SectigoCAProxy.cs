@@ -711,6 +711,7 @@ namespace Keyfactor.AnyGateway.Sectigo
 				case "APPROVED":
 				case "APPLIED":
 				case "DOWNLOADED":
+				case "EXPIRED":
 					return 20;
 
 				case "REQUESTED":
