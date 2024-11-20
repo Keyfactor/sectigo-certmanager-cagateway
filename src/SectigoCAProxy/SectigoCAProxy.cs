@@ -300,7 +300,7 @@ namespace Keyfactor.AnyGateway.Sectigo
 						}
 						else
 						{
-							Logger.Debug($"No value found for custom field {field.name}, but it is not mandatory.").
+							Logger.Debug($"No value found for custom field {field.name}, but it is not mandatory.");
 						}
 					}
 
