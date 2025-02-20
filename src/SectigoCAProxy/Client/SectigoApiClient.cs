@@ -268,10 +268,11 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
 		public async Task<X509Certificate2> PickupCertificate(int sslId, string subject)
 		{
 			var response = await RestClient.GetAsync($"/api/ssl/v1/collect/{sslId}/x509CO");
-
+			Logger.Trace($"Picking up certificate, response: {response.StatusCode}");
 			if (response.IsSuccessStatusCode && response.Content.Headers.ContentLength > 0)
 			{
 				string pemChain = await response.Content.ReadAsStringAsync();
+				Logger.Trace($"Pickup return value: {pemChain}");
 
 				string[] splitChain = pemChain.Replace("\r\n", string.Empty).Split(new string[] { "-----" }, StringSplitOptions.RemoveEmptyEntries);
 
