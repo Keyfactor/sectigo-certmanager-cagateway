@@ -246,8 +246,11 @@ namespace Keyfactor.AnyGateway.Sectigo
 			{
 				Logger.Debug("Parse Subject for Common Name, Organization, and Org Unit");
 
-				string commonName = ParseSubject(subject, "CN=");
-				Logger.Trace($"Common Name: {commonName}");
+				string commonName = ParseSubject(subject, "CN=", false);
+				if (!string.IsNullOrEmpty(commonName))
+				{
+					Logger.Trace($"Common Name: {commonName}");
+				}
 
 				string orgStr = null;
 				if (productInfo.ProductParameters.ContainsKey("Organization"))
@@ -390,7 +393,7 @@ namespace Keyfactor.AnyGateway.Sectigo
 							comments = $"CERTIFICATE_REQUESTOR: {productInfo.ProductParameters["Keyfactor-Requester"]}"//this is how the current gateway passes this data
 						};
 
-						Logger.Debug($"Submit {enrollmentType} request for {subject}");
+						Logger.Debug($"Submit {enrollmentType} request");
 						sslId = Task.Run(async () => await Client.Enroll(request)).Result;
 						newCert = Task.Run(async () => await Client.GetCertificate(sslId)).Result;
 						Logger.Debug($"Enrolled for Certificate {newCert.CommonName} (ID: {newCert.Id}) | Status: {newCert.status}. Attempt to Pickup Certificate.");
@@ -635,16 +638,21 @@ namespace Keyfactor.AnyGateway.Sectigo
 
 			if (!multiDomain)
 			{
-				if (allSans.Contains(commonName) && allSans.Count() > 1)
+				if (!string.IsNullOrEmpty(commonName) && allSans.Contains(commonName) && allSans.Count() > 1)
 				{
 					List<string> sans = allSans.ToList();
 					sans.Remove(commonName);
 					sanList = string.Join(",", sans.ToArray());
 				}
+				else
+				{
+					List<string> sans = allSans.ToList();
+					sanList = string.Join(",", sans.ToArray());
+				}
 			}
 			else
 			{
-				if (allSans.Contains(commonName))
+				if (!string.IsNullOrEmpty(commonName) && allSans.Contains(commonName))
 				{
 					List<string> sans = allSans.ToList();
 					sans.Remove(commonName);
@@ -703,6 +711,7 @@ namespace Keyfactor.AnyGateway.Sectigo
 				case "APPROVED":
 				case "APPLIED":
 				case "DOWNLOADED":
+				case "EXPIRED":
 					return 20;
 
 				case "REQUESTED":
@@ -792,9 +801,15 @@ namespace Keyfactor.AnyGateway.Sectigo
 				webRequestHandler.ClientCertificates.Add(authCert);
 			}
 
+			string apiEndpoint = localConfig.ApiEndpoint;
+			if (!apiEndpoint.EndsWith("/"))
+			{
+				apiEndpoint += "/";
+			}
+
 			HttpClient restClient = new HttpClient(webRequestHandler)
 			{
-				BaseAddress = new Uri(localConfig.ApiEndpoint)
+				BaseAddress = new Uri(apiEndpoint)
 			};
 
 			restClient.DefaultRequestHeaders.Add(Constants.CUSTOMER_URI_KEY, localConfig.CustomerUri);

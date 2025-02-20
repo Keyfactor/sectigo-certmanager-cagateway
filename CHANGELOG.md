@@ -16,3 +16,6 @@
 * Handle change to Sectigo API for organization/department lookups
 # 1.1.0
 * Allow organization name to be provided in the template section of the config
+# 1.2.0
+* Allow for blank CN to be provided
+* Fixes for Certificate Authentication

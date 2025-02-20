@@ -1,16 +1,21 @@
+
 # Sectigo Certificate Manager
 
 Sectigo Certificate Manager is a private certificate authority designed for enterprise use. The Sectigo Gateway enables the following certificate authority management functions via Keyfactor Command: Enrollment of new certificates, Revocation of existing certificates, and Synchronization of previously issued certificates.
 
 #### Integration status: Production - Ready for use in production environments.
 
+## About the Keyfactor AnyCA Gateway DCOM Connector
 
-## About the Keyfactor AnyGateway CA Connector
+This repository contains an AnyCA Gateway Connector, which is a plugin to the Keyfactor AnyGateway. AnyCA Gateway Connectors allow Keyfactor Command to be used for inventory, issuance, and revocation of certificates from a third-party certificate authority.
 
-This repository contains an AnyGateway CA Connector, which is a plugin to the Keyfactor AnyGateway. AnyGateway CA Connectors allow Keyfactor Command to be used for inventory, issuance, and revocation of certificates from a third-party certificate authority.
+## Support for Sectigo Certificate Manager
 
+Sectigo Certificate Manager is supported by Keyfactor for Keyfactor customers. If you have a support issue, please open a support ticket via the Keyfactor Support Portal at https://support.keyfactor.com
 
+###### To report a problem or suggest a new feature, use the **[Issues](../../issues)** tab. If you want to contribute actual bug fixes or proposed enhancements, use the **[Pull requests](../../pulls)** tab.
 
+---
 
 
 ---
@@ -19,6 +24,16 @@ This repository contains an AnyGateway CA Connector, which is a plugin to the Ke
 
 
 
+## Keyfactor AnyCA Gateway Framework Supported
+The Keyfactor gateway framework implements common logic shared across various gateway implementations and handles communication with Keyfactor Command. The gateway framework hosts gateway implementations or plugins that understand how to communicate with specific CAs. This allows you to integrate your third-party CAs with Keyfactor Command such that they behave in a manner similar to the CAs natively supported by Keyfactor Command.
+
+
+
+
+This gateway extension was compiled against version  of the AnyCA Gateway DCOM Framework.  You will need at least this version of the framework Installed. If you have a later AnyGateway Framework Installed you will probably need to add binding redirects in the CAProxyServer.exe.config file to make things work properly.
+
+
+[Keyfactor CAGateway Install Guide](https://software.keyfactor.com/Guides/AnyGateway_Generic/Content/AnyGateway/Introduction.htm)
 
 
 
@@ -48,13 +63,17 @@ Additional information about [Sectigo Certificate Manager](https://sectigo.com/k
 * Code Signing
 
 ## Compatibility
-This AnyGateway is designed to be used with version 21.3.2 of the Keyfactor AnyGateway Framework
+This AnyGateway is designed to be used with version 21.3.2 or newer of the Keyfactor AnyGateway DCOM Framework
 
 ## Prerequisites
 
 ### Certificate Chain
 
 In order to enroll for certificates the Keyfactor Command server must trust the trust chain. Once you create your Root and/or Subordinate CA, make sure to import the certificate chain into the Command Server certificate store
+
+### Sectigo Settings
+For each Organization/Department you plan on using through the gateway, in your Sectigo portal, go to that Organization, select Certificate Settings -> SSL Certificates, and check the "Enable Web/REST API" checkbox.  
+In addition, for the admin account you plan to use, make sure it has the API admin type selected in the portal.
 
 ### Migration
 In the event that a system is being upgraded from the Legacy Sectigo CA Gateway (19.4 or older), a migration from the legacy database format to the AnyGateway format will be required. 
@@ -248,4 +267,5 @@ There are no specific Changes for the GatewayRegistration section. Refer to the 
 	"PartialScanPeriodMinutes": 480 /*Note partial sync based on a timestamp is not supported by the Sectigo API. As a result all syncs with the API are treated as full syncronization jobs*/
   }
 ```
+
 
