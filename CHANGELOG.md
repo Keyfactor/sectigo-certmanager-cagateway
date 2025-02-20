@@ -18,4 +18,8 @@
 * Allow organization name to be provided in the template section of the config
 # 1.2.0
 * Allow for blank CN to be provided
-* Fixes for Certificate Authentication
+* Fixes for Certificate Authentication  
+# 1.2.1  
+* Fix for handling sync of expired records  
+* Handle null Keyfactor-Requestor  
+* Properly pass in custom fields to enrollment API  

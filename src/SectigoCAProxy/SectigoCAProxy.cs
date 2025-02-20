@@ -278,17 +278,32 @@ namespace Keyfactor.AnyGateway.Sectigo
 				}
 
 				var fieldList = Task.Run(async () => await Client.ListCustomFields()).Result;
-				var mandatoryFields = fieldList.CustomFields?.Where(f => f.mandatory);
+				var allFields = fieldList.CustomFields?.Select(f => f);
 
-				Logger.Debug("Check for mandatory custom fields");
-				foreach (CustomField reqField in mandatoryFields)
+				Logger.Debug("Check for custom fields");
+				List<CustomField> customFields = new List<CustomField>();
+				foreach (CustomField field in allFields)
 				{
-					Logger.Trace($"Checking product parameters for {reqField.name}");
-					if (!productInfo.ProductParameters.ContainsKey(reqField.name))
+					Logger.Trace($"Checking product parameters for {field.name}");
+					if (productInfo.ProductParameters.ContainsKey(field.name) && !string.IsNullOrEmpty(productInfo.ProductParameters[field.name]))
 					{
-						Logger.MethodExit(ILogExtensions.MethodLogLevel.Debug);
-						return new EnrollmentResult { Status = 30, StatusMessage = $"Template {productInfo.ProductID} or Enrollment Fields do not contain a mandatory custom field value for of {reqField.name}" };
+						var value = productInfo.ProductParameters[field.name];
+						Logger.Debug($"Found value for custom field {field.name}: {value}");
+						customFields.Add(new CustomField() { name = field.name, value = value });
 					}
+					else
+					{
+						if (field.mandatory)
+						{
+							Logger.MethodExit(ILogExtensions.MethodLogLevel.Debug);
+							return new EnrollmentResult { Status = 30, StatusMessage = $"Custom field {field.name} is mandatory, but no value provided by template {productInfo.ProductID} or Enrollment Fields" };
+						}
+						else
+						{
+							Logger.Debug($"No value found for custom field {field.name}, but it is not mandatory.");
+						}
+					}
+
 				}
 				Logger.Debug($"Search for Organization by Name {orgStr}");
 
@@ -377,7 +392,11 @@ namespace Keyfactor.AnyGateway.Sectigo
 					case RequestUtilities.EnrollmentType.New:
 					case RequestUtilities.EnrollmentType.Reissue:
 					case RequestUtilities.EnrollmentType.Renew:
-
+						string comment = string.Empty;
+						if (productInfo.ProductParameters.ContainsKey("Keyfactor-Requester"))
+						{
+							comment = $"CERTIFICATE_REQUESTOR: {productInfo.ProductParameters["Keyfactor-Requester"]}";
+						}
 						EnrollRequest request = new EnrollRequest
 						{
 							csr = csr,
@@ -390,7 +409,8 @@ namespace Keyfactor.AnyGateway.Sectigo
 							numberServers = 1,
 							serverType = -1,
 							subjAltNames = sanList,//,
-							comments = $"CERTIFICATE_REQUESTOR: {productInfo.ProductParameters["Keyfactor-Requester"]}"//this is how the current gateway passes this data
+							comments = comment,
+							customFields = customFields
 						};
 
 						Logger.Debug($"Submit {enrollmentType} request");
@@ -711,6 +731,7 @@ namespace Keyfactor.AnyGateway.Sectigo
 				case "APPROVED":
 				case "APPLIED":
 				case "DOWNLOADED":
+				case "EXPIRED":
 					return 20;
 
 				case "REQUESTED":
