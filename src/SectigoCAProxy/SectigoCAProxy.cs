@@ -138,11 +138,20 @@ namespace Keyfactor.AnyGateway.Sectigo
 						Logger.Debug($"Certificate Data unavailable for {certToAdd.CommonName} (ID: {certToAdd.Id}). Skipping ");
 						continue;
 					}
+					string prodId = "";
+					try
+					{
+						Logger.Trace($"Cert ID: {certToAdd.Id.ToString()}");
+						Logger.Trace($"Sync ID: {syncReqId.ToString()}");
+						Logger.Trace($"Product ID: {certToAdd.CertType.id.ToString()}");
+						prodId = certToAdd.CertType.id.ToString();
+					}
+					catch { }
 
 					CAConnectorCertificate caCertToAdd = new CAConnectorCertificate
 					{
 						CARequestID = syncReqId == 0 ? certToAdd.Id.ToString() : syncReqId.ToString(),
-						ProductID = certToAdd.CertType.id.ToString(),
+						ProductID = prodId,
 						Certificate = certData,
 						Status = ConvertToKeyfactorStatus(certToAdd.status),
 						SubmissionDate = certToAdd.requested,
