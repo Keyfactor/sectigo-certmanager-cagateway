@@ -32,7 +32,7 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
 
 		public async Task<Certificate> GetCertificate(int sslId)
 		{
-			var response = await RestClient.GetAsync($"/api/ssl/v1/{sslId}");
+			var response = await RestClient.GetAsync($"api/ssl/v1/{sslId}");
 			return await ProcessResponse<Certificate>(response);
 		}
 
@@ -197,7 +197,7 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
 
 		public async Task<ListCustomFieldsResponse> ListCustomFields()
 		{
-			var response = await RestClient.GetAsync("/api/ssl/v1/customFields");
+			var response = await RestClient.GetAsync("api/ssl/v1/customFields");
 			return new ListCustomFieldsResponse { CustomFields = await ProcessResponse<List<CustomField>>(response) };
 		}
 
@@ -209,7 +209,7 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
 				urlSuffix = $"?organizationId={orgId}";
 			}
 
-			var response = await RestClient.GetAsync($"/api/ssl/v1/types{urlSuffix}");
+			var response = await RestClient.GetAsync($"api/ssl/v1/types{urlSuffix}");
 			return new ListSslProfilesResponse { SslProfiles = await ProcessResponse<List<Profile>>(response) };
 		}
 
@@ -223,7 +223,7 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
 		{
 			try
 			{
-				var response = await RestClient.PostAsJsonAsync("/api/ssl/v1/enroll", request);
+				var response = await RestClient.PostAsJsonAsync("api/ssl/v1/enroll", request);
 				var enrollResponse = await ProcessResponse<EnrollResponse>(response);
 
 				return enrollResponse.sslId;
@@ -246,7 +246,7 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
 		{
 			try
 			{
-				var response = await RestClient.PostAsJsonAsync($"/api/ssl/v1/renewById/{sslId}", "");
+				var response = await RestClient.PostAsJsonAsync($"api/ssl/v1/renewById/{sslId}", "");
 				var renewResponse = await ProcessResponse<EnrollResponse>(response);
 
 				return renewResponse.sslId;
@@ -267,11 +267,13 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
 
 		public async Task<X509Certificate2> PickupCertificate(int sslId, string subject)
 		{
-			var response = await RestClient.GetAsync($"/api/ssl/v1/collect/{sslId}/x509CO");
+			var response = await RestClient.GetAsync($"api/ssl/v1/collect/{sslId}/x509CO");
 
+			Logger.Trace($"Picking up certificate, response: {response.StatusCode}");
 			if (response.IsSuccessStatusCode && response.Content.Headers.ContentLength > 0)
 			{
 				string pemChain = await response.Content.ReadAsStringAsync();
+				Logger.Trace($"Pickup return value: {pemChain}");
 
 				string[] splitChain = pemChain.Replace("\r\n", string.Empty).Split(new string[] { "-----" }, StringSplitOptions.RemoveEmptyEntries);
 
@@ -283,7 +285,7 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
 
 		public async Task Reissue(ReissueRequest request, int sslId)
 		{
-			var response = await RestClient.PostAsJsonAsync($"/api/ssl/v1/replace/{sslId}", request);
+			var response = await RestClient.PostAsJsonAsync($"api/ssl/v1/replace/{sslId}", request);
 			response.EnsureSuccessStatusCode();
 		}
 

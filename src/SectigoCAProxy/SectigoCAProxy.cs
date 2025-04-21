@@ -138,11 +138,20 @@ namespace Keyfactor.AnyGateway.Sectigo
 						Logger.Debug($"Certificate Data unavailable for {certToAdd.CommonName} (ID: {certToAdd.Id}). Skipping ");
 						continue;
 					}
+					string prodId = "";
+					try
+					{
+						Logger.Trace($"Cert ID: {certToAdd.Id.ToString()}");
+						Logger.Trace($"Sync ID: {syncReqId.ToString()}");
+						Logger.Trace($"Product ID: {certToAdd.CertType.id.ToString()}");
+						prodId = certToAdd.CertType.id.ToString();
+					}
+					catch { }
 
 					CAConnectorCertificate caCertToAdd = new CAConnectorCertificate
 					{
 						CARequestID = syncReqId == 0 ? certToAdd.Id.ToString() : syncReqId.ToString(),
-						ProductID = certToAdd.CertType.id.ToString(),
+						ProductID = prodId,
 						Certificate = certData,
 						Status = ConvertToKeyfactorStatus(certToAdd.status),
 						SubmissionDate = certToAdd.requested,
@@ -246,8 +255,11 @@ namespace Keyfactor.AnyGateway.Sectigo
 			{
 				Logger.Debug("Parse Subject for Common Name, Organization, and Org Unit");
 
-				string commonName = ParseSubject(subject, "CN=");
-				Logger.Trace($"Common Name: {commonName}");
+				string commonName = ParseSubject(subject, "CN=", false);
+				if (!string.IsNullOrEmpty(commonName))
+				{
+					Logger.Trace($"Common Name: {commonName}");
+				}
 
 				string orgStr = null;
 				if (productInfo.ProductParameters.ContainsKey("Organization"))
@@ -275,17 +287,32 @@ namespace Keyfactor.AnyGateway.Sectigo
 				}
 
 				var fieldList = Task.Run(async () => await Client.ListCustomFields()).Result;
-				var mandatoryFields = fieldList.CustomFields?.Where(f => f.mandatory);
+				var allFields = fieldList.CustomFields?.Select(f => f);
 
-				Logger.Debug("Check for mandatory custom fields");
-				foreach (CustomField reqField in mandatoryFields)
+				Logger.Debug("Check for custom fields");
+				List<CustomField> customFields = new List<CustomField>();
+				foreach (CustomField field in allFields)
 				{
-					Logger.Trace($"Checking product parameters for {reqField.name}");
-					if (!productInfo.ProductParameters.ContainsKey(reqField.name))
+					Logger.Trace($"Checking product parameters for {field.name}");
+					if (productInfo.ProductParameters.ContainsKey(field.name) && !string.IsNullOrEmpty(productInfo.ProductParameters[field.name]))
 					{
-						Logger.MethodExit(ILogExtensions.MethodLogLevel.Debug);
-						return new EnrollmentResult { Status = 30, StatusMessage = $"Template {productInfo.ProductID} or Enrollment Fields do not contain a mandatory custom field value for of {reqField.name}" };
+						var value = productInfo.ProductParameters[field.name];
+						Logger.Debug($"Found value for custom field {field.name}: {value}");
+						customFields.Add(new CustomField() { name = field.name, value = value });
 					}
+					else
+					{
+						if (field.mandatory)
+						{
+							Logger.MethodExit(ILogExtensions.MethodLogLevel.Debug);
+							return new EnrollmentResult { Status = 30, StatusMessage = $"Custom field {field.name} is mandatory, but no value provided by template {productInfo.ProductID} or Enrollment Fields" };
+						}
+						else
+						{
+							Logger.Debug($"No value found for custom field {field.name}, but it is not mandatory.");
+						}
+					}
+
 				}
 				Logger.Debug($"Search for Organization by Name {orgStr}");
 
@@ -374,7 +401,11 @@ namespace Keyfactor.AnyGateway.Sectigo
 					case RequestUtilities.EnrollmentType.New:
 					case RequestUtilities.EnrollmentType.Reissue:
 					case RequestUtilities.EnrollmentType.Renew:
-
+						string comment = string.Empty;
+						if (productInfo.ProductParameters.ContainsKey("Keyfactor-Requester"))
+						{
+							comment = $"CERTIFICATE_REQUESTOR: {productInfo.ProductParameters["Keyfactor-Requester"]}";
+						}
 						EnrollRequest request = new EnrollRequest
 						{
 							csr = csr,
@@ -387,10 +418,11 @@ namespace Keyfactor.AnyGateway.Sectigo
 							numberServers = 1,
 							serverType = -1,
 							subjAltNames = sanList,//,
-							comments = $"CERTIFICATE_REQUESTOR: {productInfo.ProductParameters["Keyfactor-Requester"]}"//this is how the current gateway passes this data
+							comments = comment,
+							customFields = customFields
 						};
 
-						Logger.Debug($"Submit {enrollmentType} request for {subject}");
+						Logger.Debug($"Submit {enrollmentType} request");
 						sslId = Task.Run(async () => await Client.Enroll(request)).Result;
 						newCert = Task.Run(async () => await Client.GetCertificate(sslId)).Result;
 						Logger.Debug($"Enrolled for Certificate {newCert.CommonName} (ID: {newCert.Id}) | Status: {newCert.status}. Attempt to Pickup Certificate.");
@@ -635,16 +667,21 @@ namespace Keyfactor.AnyGateway.Sectigo
 
 			if (!multiDomain)
 			{
-				if (allSans.Contains(commonName) && allSans.Count() > 1)
+				if (!string.IsNullOrEmpty(commonName) && allSans.Contains(commonName) && allSans.Count() > 1)
 				{
 					List<string> sans = allSans.ToList();
 					sans.Remove(commonName);
 					sanList = string.Join(",", sans.ToArray());
 				}
+				else
+				{
+					List<string> sans = allSans.ToList();
+					sanList = string.Join(",", sans.ToArray());
+				}
 			}
 			else
 			{
-				if (allSans.Contains(commonName))
+				if (!string.IsNullOrEmpty(commonName) && allSans.Contains(commonName))
 				{
 					List<string> sans = allSans.ToList();
 					sans.Remove(commonName);
@@ -703,6 +740,7 @@ namespace Keyfactor.AnyGateway.Sectigo
 				case "APPROVED":
 				case "APPLIED":
 				case "DOWNLOADED":
+				case "EXPIRED":
 					return 20;
 
 				case "REQUESTED":
@@ -792,9 +830,15 @@ namespace Keyfactor.AnyGateway.Sectigo
 				webRequestHandler.ClientCertificates.Add(authCert);
 			}
 
+			string apiEndpoint = localConfig.ApiEndpoint;
+			if (!apiEndpoint.EndsWith("/"))
+			{
+				apiEndpoint += "/";
+			}
+
 			HttpClient restClient = new HttpClient(webRequestHandler)
 			{
-				BaseAddress = new Uri(localConfig.ApiEndpoint)
+				BaseAddress = new Uri(apiEndpoint)
 			};
 
 			restClient.DefaultRequestHeaders.Add(Constants.CUSTOMER_URI_KEY, localConfig.CustomerUri);

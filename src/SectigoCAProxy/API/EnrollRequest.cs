@@ -38,6 +38,7 @@ namespace Keyfactor.AnyGateway.Sectigo.API
 
         public string value { get; set; }
 
+		[JsonIgnore]
         public bool mandatory { get; set; }
     }
 }
