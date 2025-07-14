@@ -23,3 +23,5 @@
 * Fix for handling sync of expired records  
 * Handle null Keyfactor-Requestor  
 * Properly pass in custom fields to enrollment API  
+# 1.2.2  
+* Change revocation API call to match new Sectigo request format  

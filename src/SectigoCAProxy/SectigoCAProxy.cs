@@ -569,7 +569,7 @@ namespace Keyfactor.AnyGateway.Sectigo
 		{
 			Logger.MethodEntry(ILogExtensions.MethodLogLevel.Debug);
 
-			var response = Task.Run(async () => await Client.RevokeSslCertificateById(int.Parse(caRequestID), RevokeReasonToString(revocationReason))).Result;
+			var response = Task.Run(async () => await Client.RevokeSslCertificateById(int.Parse(caRequestID), (int)revocationReason, RevokeReasonToString(revocationReason))).Result;
 
 			Logger.MethodExit(ILogExtensions.MethodLogLevel.Debug);
 			if (response)//will throw an exception if false
@@ -761,11 +761,11 @@ namespace Keyfactor.AnyGateway.Sectigo
 		{
 			switch (revokeType)
 			{
+				case 0:
+					return "Unspecified";
+
 				case 1:
 					return "Compromised Key";
-
-				case 2:
-					return "CA Compromised";
 
 				case 3:
 					return "Affiliation Changed";
@@ -776,11 +776,8 @@ namespace Keyfactor.AnyGateway.Sectigo
 				case 5:
 					return "Cessation of Operation";
 
-				case 6:
-					return "Certificate Hold";
-
 				default:
-					return "Unspecified";
+					throw new Exception($"Invalid revocation code: {revokeType.ToString()}. Valid values are 0,1,3-5");
 			}
 		}
 
