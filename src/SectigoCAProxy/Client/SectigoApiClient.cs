@@ -141,12 +141,12 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
 
 		public async Task<bool> RevokeSslCertificateById(int sslId, int revcode, string revreason)
 		{
-			JObject o = JObject.FromObject(new
+			var data = new
 			{
 				reasonCode = revcode,
 				reason = revreason
-			});
-			var response = await RestClient.PostAsJsonAsync($"api/ssl/v1/revoke/{sslId}", o);
+			};
+			var response = await RestClient.PostAsJsonAsync($"api/ssl/v1/revoke/{sslId}", data);
 			if (response.IsSuccessStatusCode)
 			{
 				return true;

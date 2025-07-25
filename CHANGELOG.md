@@ -25,3 +25,5 @@
 * Properly pass in custom fields to enrollment API  
 # 1.2.2  
 * Change revocation API call to match new Sectigo request format  
+# 1.2.3  
+* Fix for JSON serialization for revocation  
