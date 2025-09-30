@@ -60,41 +60,44 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
 					certificatePageToProcess = await PageCertificates(certIndex, pageSize, filter);
 					Logger.Debug($"Found {certificatePageToProcess.Count} certificate to process");
 
-					//Processing Loop will add and retry adding to queue until all certificates have been processed for a page
-					batchCount = 0;
-					blockedCount = 0;
-					do
+					if (certificatePageToProcess.Count > 0)
 					{
-						Certificate cert = certificatePageToProcess[batchCount];
-						Logger.Debug($"Processing: {cert}");
-						Certificate certDetails = null;
-						try
+						//Processing Loop will add and retry adding to queue until all certificates have been processed for a page
+						batchCount = 0;
+						blockedCount = 0;
+						do
 						{
-							if (certDetails == null)
-								certDetails = await GetCertificate(cert.Id);
-						}
-						catch (SectigoApiException aEx)
-						{
-							Logger.Error($"Error requesting certificate details. Skipping certificate. {aEx.Message}");
-							batchCount++;
-							continue;
-						}
+							Certificate cert = certificatePageToProcess[batchCount];
+							Logger.Debug($"Processing: {cert}");
+							Certificate certDetails = null;
+							try
+							{
+								if (certDetails == null)
+									certDetails = await GetCertificate(cert.Id);
+							}
+							catch (SectigoApiException aEx)
+							{
+								Logger.Error($"Error requesting certificate details. Skipping certificate. {aEx.Message}");
+								batchCount++;
+								continue;
+							}
 
-						if (certs.TryAdd(certDetails, 50, cancelToken))
-						{
-							batchCount++;
-							totalCount++;
+							if (certs.TryAdd(certDetails, 50, cancelToken))
+							{
+								batchCount++;
+								totalCount++;
+							}
+							else
+							{
+								Logger.Trace($"Adding {cert.Id} to queue was blocked. Retry");
+								blockedCount++;//TODO: If blocked count is excessive, should we skip?
+							}
+							certIndex++;
 						}
-						else
-						{
-							Logger.Trace($"Adding {cert.Id} to queue was blocked. Retry");
-							blockedCount++;//TODO: If blocked count is excessive, should we skip?
-						}
-						certIndex++;
+						while (batchCount < certificatePageToProcess.Count);
+
+						Logger.Info($"Added {batchCount} certificates to queue for processing.");
 					}
-					while (batchCount < certificatePageToProcess.Count);
-
-					Logger.Info($"Added {batchCount} certificates to queue for processing.");
 				} while (certificatePageToProcess.Count == pageSize);//if the API returns less than we requested, we assume we have reached the end
 			}
 			catch (HttpRequestException hEx)
