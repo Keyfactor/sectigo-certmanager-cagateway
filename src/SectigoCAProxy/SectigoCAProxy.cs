@@ -392,6 +392,26 @@ namespace Keyfactor.AnyGateway.Sectigo
 					Logger.Trace($"Found {enrollmentProfile.name} profile for enroll request");
 				}
 
+				int termLength;
+				var profileTerms = Task.Run(async () => await GetProfileTerms(int.Parse(productInfo.ProductID))).Result;
+				if (productInfo.ProductParameters.ContainsKey("Lifetime") && !string.IsNullOrEmpty(productInfo.ProductParameters["Lifetime"]))
+				{
+					var tempTerm = int.Parse(productInfo.ProductParameters["Lifetime"]);
+					if (profileTerms.Contains(tempTerm))
+					{
+						termLength = tempTerm;
+					}
+					else
+					{
+						Logger.Error($"Specified term length of {tempTerm} does not match available terms for product ID {productInfo.ProductID}. Available terms are {string.Join(",", profileTerms)}");
+						throw new Exception($"Specified term length of {tempTerm} does not match available terms for product ID {productInfo.ProductID}");
+					}
+				}
+				else
+				{
+					termLength = profileTerms[0];
+				}
+
 				int sslId;
 				string priorSn = string.Empty;
 				Certificate newCert = null;
@@ -410,7 +430,7 @@ namespace Keyfactor.AnyGateway.Sectigo
 						{
 							csr = csr,
 							orgId = requestOrgId,
-							term = Task.Run(async () => await GetProfileTerm(int.Parse(productInfo.ProductID))).Result,
+							term = termLength,
 							certType = enrollmentProfile.id,
 							//External requestor is expected to be an email. Use config to pull the enrollment field or send blank
 							//sectigo will default to the account (API account) making the request.
@@ -642,10 +662,10 @@ namespace Keyfactor.AnyGateway.Sectigo
 			return orgList.Organizations.Where(x => x.name.ToLower().Equals(orgName.ToLower())).FirstOrDefault();
 		}
 
-		private async Task<int> GetProfileTerm(int profileId)
+		private async Task<List<int>> GetProfileTerms(int profileId)
 		{
 			var profileList = await Client.ListSslProfiles();
-			return profileList.SslProfiles.Where(x => x.id == profileId).FirstOrDefault().terms[0];
+			return profileList.SslProfiles.Where(x => x.id == profileId).FirstOrDefault().terms.ToList();
 		}
 
 		private async Task<Profile> GetProfile(int profileId)
