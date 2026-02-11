@@ -64,6 +64,8 @@ REQUIRED. This flag lets Keyfactor know if the certificate can contain multiple 
 OPTIONAL. If the organization name is provided as a parameter here, the Sectigo gateway will use that organization name in requests, instead of the O field in the subject.
 * ```Department```
 OPTIONAL. If your Sectigo account is using department-level products, put the appropriate department name here. Previous versions of the Sectigo gateway read this value from the OU field of the subject, which is now deprecated.
+* ```Lifetime```
+OPTIONAL. The term length (in days) to use for enrollment. If not provided, the default is the first value available in the profile definition in your Sectigo account.
 
  ```json
   "Templates": {
@@ -72,7 +74,8 @@ OPTIONAL. If your Sectigo account is using department-level products, put the ap
            "Parameters": {
                  "MultiDomain": "false",
 				 "Organization": "Organization Name",
-				 "Department": "Department Name"
+				 "Department": "Department Name",
+				 "Lifetime": "199"
       }
    }
 }
