@@ -89,6 +89,7 @@ namespace Keyfactor.AnyGateway.Sectigo
 						throw producerTask.Exception.Flatten();
 					}
 
+					Logger.Trace($"SYNC TRACE ({certToAdd.Id}): Processing record {certToAdd.Id}");
 					CAConnectorCertificate dbCert = null;
 					//serial number is blank on certs that have not been issued (awaiting approval)
 					if (!String.IsNullOrEmpty(certToAdd.SerialNumber))
@@ -127,7 +128,7 @@ namespace Keyfactor.AnyGateway.Sectigo
 					else
 					{
 						//No certificate in the DB by SN.  Need to download to get full certdata required for sync process
-						Logger.Trace($"Attempt to Pickup Certificate {certToAdd.CommonName} (ID: {certToAdd.Id})");
+						Logger.Trace($"SYNC TRACE ({certToAdd.Id}): Attempt to Pickup Certificate {certToAdd.CommonName}");
 						var certdataApi = Task.Run(async () => await Client.PickupCertificate(certToAdd.Id, certToAdd.CommonName)).Result;
 						if (certdataApi != null)
 							certData = Convert.ToBase64String(certdataApi.GetRawCertData());
@@ -138,12 +139,14 @@ namespace Keyfactor.AnyGateway.Sectigo
 						Logger.Debug($"Certificate Data unavailable for {certToAdd.CommonName} (ID: {certToAdd.Id}). Skipping ");
 						continue;
 					}
+					Logger.Trace($"SYNC TRACE ({certToAdd.Id}): Retrieved cert data: {certData}");
 					string prodId = "";
 					try
 					{
-						Logger.Trace($"Cert ID: {certToAdd.Id.ToString()}");
-						Logger.Trace($"Sync ID: {syncReqId.ToString()}");
-						Logger.Trace($"Product ID: {certToAdd.CertType.id.ToString()}");
+						Logger.Trace($"SYNC TRACE ({certToAdd.Id}): Cert ID: {certToAdd.Id.ToString()}");
+						Logger.Trace($"SYNC TRACE ({certToAdd.Id}): Sync ID: {syncReqId.ToString()}");
+						Logger.Trace($"SYNC TRACE ({certToAdd.Id}): Product ID: {certToAdd.CertType.id.ToString()}");
+						Logger.Trace($"SYNC TRACE ({certToAdd.Id}): Status: {certToAdd.status}");
 						prodId = certToAdd.CertType.id.ToString();
 					}
 					catch { }
