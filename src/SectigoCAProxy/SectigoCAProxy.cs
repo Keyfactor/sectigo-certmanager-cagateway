@@ -89,6 +89,7 @@ namespace Keyfactor.AnyGateway.Sectigo
 						throw producerTask.Exception.Flatten();
 					}
 
+					Logger.Trace($"SYNC TRACE ({certToAdd.Id}): Processing record {certToAdd.Id}");
 					CAConnectorCertificate dbCert = null;
 					//serial number is blank on certs that have not been issued (awaiting approval)
 					if (!String.IsNullOrEmpty(certToAdd.SerialNumber))
@@ -127,7 +128,7 @@ namespace Keyfactor.AnyGateway.Sectigo
 					else
 					{
 						//No certificate in the DB by SN.  Need to download to get full certdata required for sync process
-						Logger.Trace($"Attempt to Pickup Certificate {certToAdd.CommonName} (ID: {certToAdd.Id})");
+						Logger.Trace($"SYNC TRACE ({certToAdd.Id}): Attempt to Pickup Certificate {certToAdd.CommonName}");
 						var certdataApi = Task.Run(async () => await Client.PickupCertificate(certToAdd.Id, certToAdd.CommonName)).Result;
 						if (certdataApi != null)
 							certData = Convert.ToBase64String(certdataApi.GetRawCertData());
@@ -138,12 +139,14 @@ namespace Keyfactor.AnyGateway.Sectigo
 						Logger.Debug($"Certificate Data unavailable for {certToAdd.CommonName} (ID: {certToAdd.Id}). Skipping ");
 						continue;
 					}
+					Logger.Trace($"SYNC TRACE ({certToAdd.Id}): Retrieved cert data: {certData}");
 					string prodId = "";
 					try
 					{
-						Logger.Trace($"Cert ID: {certToAdd.Id.ToString()}");
-						Logger.Trace($"Sync ID: {syncReqId.ToString()}");
-						Logger.Trace($"Product ID: {certToAdd.CertType.id.ToString()}");
+						Logger.Trace($"SYNC TRACE ({certToAdd.Id}): Cert ID: {certToAdd.Id.ToString()}");
+						Logger.Trace($"SYNC TRACE ({certToAdd.Id}): Sync ID: {syncReqId.ToString()}");
+						Logger.Trace($"SYNC TRACE ({certToAdd.Id}): Product ID: {certToAdd.CertType.id.ToString()}");
+						Logger.Trace($"SYNC TRACE ({certToAdd.Id}): Status: {certToAdd.status}");
 						prodId = certToAdd.CertType.id.ToString();
 					}
 					catch { }
@@ -392,6 +395,26 @@ namespace Keyfactor.AnyGateway.Sectigo
 					Logger.Trace($"Found {enrollmentProfile.name} profile for enroll request");
 				}
 
+				int termLength;
+				var profileTerms = Task.Run(async () => await GetProfileTerms(int.Parse(productInfo.ProductID))).Result;
+				if (productInfo.ProductParameters.ContainsKey("Lifetime") && !string.IsNullOrEmpty(productInfo.ProductParameters["Lifetime"]))
+				{
+					var tempTerm = int.Parse(productInfo.ProductParameters["Lifetime"]);
+					if (profileTerms.Contains(tempTerm))
+					{
+						termLength = tempTerm;
+					}
+					else
+					{
+						Logger.Error($"Specified term length of {tempTerm} does not match available terms for product ID {productInfo.ProductID}. Available terms are {string.Join(",", profileTerms)}");
+						throw new Exception($"Specified term length of {tempTerm} does not match available terms for product ID {productInfo.ProductID}");
+					}
+				}
+				else
+				{
+					termLength = profileTerms[0];
+				}
+
 				int sslId;
 				string priorSn = string.Empty;
 				Certificate newCert = null;
@@ -410,7 +433,7 @@ namespace Keyfactor.AnyGateway.Sectigo
 						{
 							csr = csr,
 							orgId = requestOrgId,
-							term = Task.Run(async () => await GetProfileTerm(int.Parse(productInfo.ProductID))).Result,
+							term = termLength,
 							certType = enrollmentProfile.id,
 							//External requestor is expected to be an email. Use config to pull the enrollment field or send blank
 							//sectigo will default to the account (API account) making the request.
@@ -642,10 +665,10 @@ namespace Keyfactor.AnyGateway.Sectigo
 			return orgList.Organizations.Where(x => x.name.ToLower().Equals(orgName.ToLower())).FirstOrDefault();
 		}
 
-		private async Task<int> GetProfileTerm(int profileId)
+		private async Task<List<int>> GetProfileTerms(int profileId)
 		{
 			var profileList = await Client.ListSslProfiles();
-			return profileList.SslProfiles.Where(x => x.id == profileId).FirstOrDefault().terms[0];
+			return profileList.SslProfiles.Where(x => x.id == profileId).FirstOrDefault().terms.ToList();
 		}
 
 		private async Task<Profile> GetProfile(int profileId)

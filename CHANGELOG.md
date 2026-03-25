@@ -27,3 +27,7 @@
 * Change revocation API call to match new Sectigo request format  
 # 1.2.3  
 * Fix for JSON serialization for revocation  
+# 1.2.4  
+* Fix for null reference exception on sync with 0 records  
+# 1.2.5  
+* Allow for manually specifying lifetime length for enrollment  

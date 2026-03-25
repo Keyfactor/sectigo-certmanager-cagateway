@@ -14,6 +14,6 @@ jobs:
     uses: keyfactor/actions/.github/workflows/starter.yml@v2
     secrets:
       token: ${{ secrets.V2BUILDTOKEN}}
-      APPROVE_README_PUSH: ${{ secrets.APPROVE_README_PUSH}}
+      APPROVE_README_PUSH: ${{ secrets.V2BUILDTOKEN }}
       gpg_key: ${{ secrets.KF_GPG_PRIVATE_KEY }}
       gpg_pass: ${{ secrets.KF_GPG_PASSPHRASE }}
