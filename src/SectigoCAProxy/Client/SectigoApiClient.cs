@@ -4,6 +4,8 @@
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
+using Common.Logging.Factory;
+
 using CSS.Common.Logging;
 
 using Keyfactor.AnyGateway.Sectigo.API;
@@ -32,7 +34,9 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
 
 		public async Task<Certificate> GetCertificate(int sslId)
 		{
-			var response = await RestClient.GetAsync($"api/ssl/v1/{sslId}");
+			string uri = $"api/ssl/v1/{sslId}";
+			Logger.Trace($"API Request: GET {uri}");
+			var response = await RestClient.GetAsync(uri);
 			return await ProcessResponse<Certificate>(response);
 		}
 
@@ -137,8 +141,9 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
 		public async Task<List<Certificate>> PageCertificates(int position = 0, int size = 25, string filter = "")
 		{
 			string filterQueryString = String.IsNullOrEmpty(filter) ? string.Empty : $"&{filter}";
-			Logger.Trace($"API Request: api/ssl/v1?position={position}&size={size}{filterQueryString}".TrimEnd());
-			var response = await RestClient.GetAsync($"api/ssl/v1?position={position}&size={size}{filterQueryString}".TrimEnd());
+			string uri = $"api/ssl/v1?position={position}&size={size}{filterQueryString}".TrimEnd();
+			Logger.Trace($"API Request: GET {uri}");
+			var response = await RestClient.GetAsync(uri);
 			return await ProcessResponse<List<Certificate>>(response);
 		}
 
@@ -149,9 +154,13 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
 				reasonCode = revcode,
 				reason = revreason
 			};
-			var response = await RestClient.PostAsJsonAsync($"api/ssl/v1/revoke/{sslId}", data);
+			string uri = $"api/ssl/v1/revoke/{sslId}";
+			string parameters = JsonConvert.SerializeObject(data, Formatting.Indented);
+			Logger.Trace($"API Request: POST {uri}\nParameters: {parameters}");
+			var response = await RestClient.PostAsJsonAsync(uri, data);
 			if (response.IsSuccessStatusCode)
 			{
+				Logger.Trace($"API Response: Revocation successful");
 				return true;
 			}
 			var failedResp = ProcessResponse<RevocationResponse>(response).Result;
@@ -160,12 +169,9 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
 
 		public async Task<ListOrganizationsResponse> ListOrganizations()
 		{
-			var response = await RestClient.GetAsync("api/organization/v1");
-			if (response.IsSuccessStatusCode)
-			{
-				string responseContent = await response.Content.ReadAsStringAsync();
-				Logger.Trace($"Raw Response: {responseContent}");
-			}
+			string uri = $"api/organization/v1";
+			Logger.Trace($"API Request: GET {uri}");
+			var response = await RestClient.GetAsync(uri);
 			var orgsResponse = await ProcessResponse<List<Organization>>(response);
 
 			return new ListOrganizationsResponse { Organizations = orgsResponse };
@@ -173,12 +179,9 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
 
 		public async Task<OrganizationDetailsResponse> GetOrganizationDetails(int orgId)
 		{
-			var response = await RestClient.GetAsync($"api/organization/v1/{orgId}");
-			if (response.IsSuccessStatusCode)
-			{
-				string responseContent = await response.Content.ReadAsStringAsync();
-				Logger.Trace($"Raw Response: {responseContent}");
-			}
+			string uri = $"api/organization/v1/{orgId}";
+			Logger.Trace($"API Request: GET {uri}");
+			var response = await RestClient.GetAsync(uri);
 
 			var orgDetailsResponse = await ProcessResponse<OrganizationDetailsResponse>(response);
 			return orgDetailsResponse;
@@ -201,7 +204,9 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
 
 		public async Task<ListCustomFieldsResponse> ListCustomFields()
 		{
-			var response = await RestClient.GetAsync("api/ssl/v1/customFields");
+			string uri = $"api/ssl/v1/customFields";
+			Logger.Trace($"API Request: GET {uri}");
+			var response = await RestClient.GetAsync(uri);
 			return new ListCustomFieldsResponse { CustomFields = await ProcessResponse<List<CustomField>>(response) };
 		}
 
@@ -212,14 +217,17 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
 			{
 				urlSuffix = $"?organizationId={orgId}";
 			}
-
-			var response = await RestClient.GetAsync($"api/ssl/v1/types{urlSuffix}");
+			string uri = $"api/ssl/v1/types{urlSuffix}";
+			Logger.Trace($"API Request: GET {uri}");
+			var response = await RestClient.GetAsync(uri);
 			return new ListSslProfilesResponse { SslProfiles = await ProcessResponse<List<Profile>>(response) };
 		}
 
 		public async Task<List<Person>> PagePerons(int orgId, int position = 0, int size = 25)
 		{
-			var response = await RestClient.GetAsync($"api/person/v1?position={position}&size={size}&organizationId={orgId}");
+			string uri = $"api/person/v1?position={position}&size={size}&organizationId={orgId}";
+			Logger.Trace($"API Request: GET {uri}");
+			var response = await RestClient.GetAsync(uri);
 			return await ProcessResponse<List<Person>>(response);
 		}
 
@@ -227,7 +235,10 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
 		{
 			try
 			{
-				var response = await RestClient.PostAsJsonAsync("api/ssl/v1/enroll", request);
+				string uri = $"api/ssl/v1/enroll";
+				string parameters = JsonConvert.SerializeObject(request, Formatting.Indented);
+				Logger.Trace($"API Request: POST {uri}\nParameters: {parameters}");
+				var response = await RestClient.PostAsJsonAsync(uri, request);
 				var enrollResponse = await ProcessResponse<EnrollResponse>(response);
 
 				return enrollResponse.sslId;
@@ -250,7 +261,9 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
 		{
 			try
 			{
-				var response = await RestClient.PostAsJsonAsync($"api/ssl/v1/renewById/{sslId}", "");
+				string uri = $"api/ssl/v1/renewById/{sslId}";
+				Logger.Trace($"API Request: POST {uri}");
+				var response = await RestClient.PostAsJsonAsync(uri, "");
 				var renewResponse = await ProcessResponse<EnrollResponse>(response);
 
 				return renewResponse.sslId;
@@ -271,11 +284,14 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
 
 		public async Task<X509Certificate2> PickupCertificate(int sslId, string subject)
 		{
-			var response = await RestClient.GetAsync($"api/ssl/v1/collect/{sslId}/x509CO");
+			string uri = $"api/ssl/v1/collect/{sslId}/x509CO";
+			Logger.Trace($"API Request: GET {uri}");
+			var response = await RestClient.GetAsync(uri);
 
-			Logger.Trace($"Picking up certificate, response: {response.StatusCode}");
+			
 			if (response.IsSuccessStatusCode && response.Content.Headers.ContentLength > 0)
 			{
+				Logger.Trace($"Picking up certificate");
 				string pemChain = await response.Content.ReadAsStringAsync();
 				Logger.Trace($"Pickup return value: {pemChain}");
 
@@ -289,7 +305,10 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
 
 		public async Task Reissue(ReissueRequest request, int sslId)
 		{
-			var response = await RestClient.PostAsJsonAsync($"api/ssl/v1/replace/{sslId}", request);
+			string uri = $"api/ssl/v1/replace/{sslId}";
+			string parameters = JsonConvert.SerializeObject(request, Formatting.Indented);
+			Logger.Trace($"API Request: POST {uri}\nParameters: {parameters}");
+			var response = await RestClient.PostAsJsonAsync(uri, request);
 			response.EnsureSuccessStatusCode();
 		}
 
@@ -297,19 +316,21 @@ namespace Keyfactor.AnyGateway.Sectigo.Client
 
 		private static Func<String, String> hexify = (ss => ss.Length <= 2 ? ss : ss.Substring(0, 2) + ":" + hexify(ss.Substring(2)));
 
-		private static async Task<T> ProcessResponse<T>(HttpResponseMessage response)
+		private async Task<T> ProcessResponse<T>(HttpResponseMessage response)
 		{
+			string responseContent = await response.Content.ReadAsStringAsync();
+			Logger.Trace($"API Response Status: {response.StatusCode}\nContent: {responseContent}");
 			if (response.IsSuccessStatusCode)
 			{
-				string responseContent = await response.Content.ReadAsStringAsync();
 				return JsonConvert.DeserializeObject<T>(responseContent);
 			}
 			else
 			{
-				var error = JsonConvert.DeserializeObject<Error>(await response.Content.ReadAsStringAsync());
+				var error = JsonConvert.DeserializeObject<Error>(responseContent);
 				throw new SectigoApiException($"{error.Code} | {error.Description}") { ErrorCode = error.Code, Description = error.Description };
 			}
 		}
+
 
 		private static string GetCertificateType(CertificateType type)
 		{
